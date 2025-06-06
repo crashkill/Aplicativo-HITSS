@@ -279,17 +279,61 @@ export class DRESupabaseService {
    */
   async getAllRecords(): Promise<DRERecord[]> {
     try {
-      const { data, error } = await supabase
+      // Primeiro, verificar quantos registros existem
+      const { count, error: countError } = await supabase
         .from(this.tableName)
-        .select('*')
-        .order('uploaded_at', { ascending: false })
+        .select('*', { count: 'exact', head: true })
 
-      if (error) {
-        console.error('Erro ao buscar registros:', error)
+      if (countError) {
+        console.error('Erro ao contar registros:', countError)
         return []
       }
 
-      return data || []
+      console.log(`📊 Total de registros no Supabase: ${count}`)
+
+      // Se há poucos registros, buscar tudo de uma vez
+      if (!count || count <= 1000) {
+        const { data, error } = await supabase
+          .from(this.tableName)
+          .select('*')
+          .order('uploaded_at', { ascending: false })
+
+        if (error) {
+          console.error('Erro ao buscar registros:', error)
+          return []
+        }
+
+        return data || []
+      }
+
+      // Para muitos registros, usar paginação
+      const allRecords: DRERecord[] = []
+      const pageSize = 1000
+      let currentPage = 0
+
+      while (currentPage * pageSize < count) {
+        const { data, error } = await supabase
+          .from(this.tableName)
+          .select('*')
+          .order('uploaded_at', { ascending: false })
+          .range(currentPage * pageSize, (currentPage + 1) * pageSize - 1)
+
+        if (error) {
+          console.error(`Erro ao buscar página ${currentPage + 1}:`, error)
+          break
+        }
+
+        if (data && data.length > 0) {
+          allRecords.push(...data)
+          console.log(`📄 Página ${currentPage + 1}: ${data.length} registros carregados`)
+        }
+
+        currentPage++
+      }
+
+      console.log(`✅ Total carregado: ${allRecords.length} de ${count} registros`)
+      return allRecords
+
     } catch (error) {
       console.error('Erro ao buscar registros:', error)
       return []
