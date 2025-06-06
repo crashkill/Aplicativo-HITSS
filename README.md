@@ -238,6 +238,34 @@ npm run dev
 
 ---
 
+## 📊 Regras de Negócio Importantes
+
+### Cálculo de Margem em Planilhas Financeiras
+
+**⚠️ REGRA CRÍTICA**: Não dividir margem por 100 antes de `formatPercent`
+
+- A função `formatPercent` já divide por 100 internamente
+- A margem deve ser passada diretamente (ex: 11.9 para 11.9%)
+- **Erro comum**: `formatPercent(margem / 100)` → resulta em 0,1% ao invés de 11,9%
+- **Correto**: `formatPercent(margem)` → exibe 11,9% corretamente
+
+**Fórmula da Margem**:
+```typescript
+const custoAjustado = Math.abs(custo) - desoneracao;
+const margem = receita > 0 ? (1 - (custoAjustado / receita)) * 100 : 0;
+```
+
+**Propagação de Dados**: Se `receita === 0` e `mês > 1`, copiar valores do último mês com dados.
+
+### Histórico de Correções Críticas
+
+**2025-01-16**: 
+- ✅ **Correção Dashboard**: Custos negativos sendo somados como positivos (SQL `ABS()` aplicado incorretamente)
+- ✅ **Correção Planilhas**: Margem exibindo 0,1% ao invés de 11,9% (divisão dupla por 100)
+- ✅ **Alinhamento**: Comportamento idêntico ao app-financeiro de referência
+
+---
+
 ## 🔗 Links Úteis
 
 - 🌐 **Aplicação Local**: http://localhost:3001
@@ -315,3 +343,33 @@ Esta seção documenta decisões de arquitetura e soluções para problemas espe
 - **Como Executar a Correção:** O arquivo `EXECUTE_FUNCTIONS_DIRECT.sql` contém o script final que deve ser executado diretamente no Editor SQL do Supabase para atualizar as funções.
 
 ---
+
+## 📊 Regras de Negócio Importantes
+
+### Cálculo de Margem em Planilhas Financeiras
+
+**⚠️ REGRA CRÍTICA**: Não dividir margem por 100 antes de `formatPercent`
+
+- A função `formatPercent` já divide por 100 internamente
+- A margem deve ser passada diretamente (ex: 11.9 para 11.9%)
+- **Erro comum**: `formatPercent(margem / 100)` → resulta em 0,1% ao invés de 11,9%
+- **Correto**: `formatPercent(margem)` → exibe 11,9% corretamente
+
+**Fórmula da Margem**:
+```typescript
+const custoAjustado = Math.abs(custo) - desoneracao;
+const margem = receita > 0 ? (1 - (custoAjustado / receita)) * 100 : 0;
+```
+
+**Propagação de Dados**: Se `receita === 0` e `mês > 1`, copiar valores do último mês com dados.
+
+### Histórico de Correções Críticas
+
+**2025-01-16**: 
+- ✅ **Correção Dashboard**: Custos negativos sendo somados como positivos (SQL `ABS()` aplicado incorretamente)
+- ✅ **Correção Planilhas**: Margem exibindo 0,1% ao invés de 11,9% (divisão dupla por 100)
+- ✅ **Alinhamento**: Comportamento idêntico ao app-financeiro de referência
+
+---
+
+## 📊 Deploy e Produção
