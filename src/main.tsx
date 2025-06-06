@@ -1,13 +1,28 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from './contexts/AuthContext'
 import { ConfigProvider } from './contexts/ConfigContext'
+import { ThemeProvider } from './contexts/ThemeContext'
 import App from './App'
 
 // Styles
 import 'bootstrap/dist/css/bootstrap.min.css'
+import './index.css'
 import './styles/custom.css'
+
+// Configure React Query
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      gcTime: 1000 * 60 * 10, // 10 minutes
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+})
 
 // Ensure the root element exists
 const rootElement = document.getElementById('root')
@@ -19,12 +34,16 @@ if (!rootElement) {
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <BrowserRouter>
-      <AuthProvider>
-        <ConfigProvider>
-          <App />
-        </ConfigProvider>
-      </AuthProvider>
-    </BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <AuthProvider>
+          <ConfigProvider>
+            <ThemeProvider>
+              <App />
+            </ThemeProvider>
+          </ConfigProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
   </React.StrictMode>,
 )

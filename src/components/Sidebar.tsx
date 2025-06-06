@@ -15,6 +15,7 @@ import {
   UilDatabase
 } from '@iconscout/react-unicons'
 import { useConfig } from '../contexts/ConfigContext'
+import ThemeToggle from './ui/ThemeToggle'
 
 // Wrappers para os ícones com parâmetros padrão
 // Updated icon wrappers with default parameters
@@ -123,7 +124,7 @@ const Sidebar = () => {
 
   return (
     <div 
-      className="bg-white shadow-sm" 
+      className="bg-gray-50 dark:bg-slate-800 shadow-sm" 
       style={{ 
         width: sidebarWidth, 
         minHeight: '100vh', 
@@ -134,7 +135,7 @@ const Sidebar = () => {
     >
       <div className="p-3">
         <div className="d-flex align-items-center justify-content-between mb-4">
-          {isOpen && <h5 className="mb-0 text-dark">Menu</h5>}
+          {isOpen && <h5 className="mb-0">Menu</h5>}
           <div style={{ 
             color: '#6c757d',
             display: 'flex',
@@ -162,8 +163,8 @@ const Sidebar = () => {
                 to={menuItem.path}
                 className={`nav-link py-2 ${menuItemClass} ${
                   isActive(menuItem.path) 
-                    ? 'active bg-primary bg-opacity-10 text-primary' 
-                    : 'text-dark'
+                    ? 'active bg-blue-100 dark:bg-blue-500 dark:bg-opacity-20 text-blue-600 dark:text-blue-400' 
+                    : 'text-slate-700 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-700'
                 }`}
                 style={{
                   borderRadius: '8px',
@@ -182,8 +183,15 @@ const Sidebar = () => {
           ))}
         </Nav>
         
-        {isOpen && config.userImage && (
-          <div className="position-absolute bottom-0 start-0 p-3 w-100">
+        {/* Footer do Sidebar com ThemeToggle e informações do usuário */}
+        <div className="position-absolute bottom-0 start-0 p-3 w-100" style={{ paddingBottom: '20px' }}>
+          {/* ThemeToggle sempre visível */}
+          <div className={`d-flex justify-content-center ${isOpen && config.userImage ? 'mb-3' : 'mb-0'}`}>
+            <ThemeToggle className={isOpen ? '' : 'scale-75'} />
+          </div>
+          
+          {/* Informações do usuário (apenas quando sidebar expandido) */}
+          {isOpen && config.userImage && (
             <div className="d-flex align-items-center">
               <img 
                 src={config.userImage} 
@@ -191,10 +199,10 @@ const Sidebar = () => {
                 className="rounded-circle"
                 style={{ width: '40px', height: '40px', objectFit: 'cover' }}
               />
-              <span className="ms-2 text-dark">{config.userName || 'Usuário'}</span>
+              <span className="ms-2">{config.userName || 'Usuário'}</span>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   )

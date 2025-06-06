@@ -4,6 +4,7 @@ import { db } from '../db/database'
 import type { Transacao } from '../db/database'
 import { ProjectCharts } from '../components/ProjectCharts'
 import FilterPanel from '../components/FilterPanel'
+import { collaboratorsService } from '../lib/supabaseCollaboratorsService'
 
 const Dashboard = () => {
   const [allTransactions, setAllTransactions] = useState<Transacao[]>([])
@@ -16,6 +17,15 @@ const Dashboard = () => {
     receita: 0,
     custo: 0
   })
+
+  // Estados para dados dos colaboradores
+  const [collaboratorStats, setCollaboratorStats] = useState({
+    total: 0,
+    available: 0,
+    clt: 0,
+    pj: 0
+  })
+  const [loadingCollaborators, setLoadingCollaborators] = useState(true)
 
   // Carregar todas as transações
   useEffect(() => {
@@ -138,6 +148,29 @@ const Dashboard = () => {
     setTotais(totaisCalculados);
   }, [filteredTransactions, selectedYear, selectedProjects]);
 
+  // Carregar dados dos colaboradores
+  useEffect(() => {
+    const loadCollaboratorStats = async () => {
+      try {
+        setLoadingCollaborators(true)
+        const stats = await collaboratorsService.getCollaboratorStats()
+        setCollaboratorStats({
+          total: stats.total,
+          available: stats.availableForSharing,
+          clt: stats.cltCount,
+          pj: stats.pjCount
+        })
+      } catch (error) {
+        console.error('Erro ao carregar estatísticas dos colaboradores:', error)
+        // Manter valores zero em caso de erro
+      } finally {
+        setLoadingCollaborators(false)
+      }
+    }
+
+    loadCollaboratorStats()
+  }, [])
+
   return (
     <Container>
       <Row className="mb-4">
@@ -157,10 +190,10 @@ const Dashboard = () => {
 
       <Row>
         <Col md={6} className="mb-4">
-          <Card className="h-100">
+          <Card className="h-100 bg-card text-card-foreground border border-border">
             <Card.Body>
               <Card.Title>Receita Total</Card.Title>
-              <Card.Text className="h2 text-success">
+              <Card.Text className="h2 text-success dark:text-green-400">
                 {new Intl.NumberFormat('pt-BR', {
                   style: 'currency',
                   currency: 'BRL'
@@ -170,10 +203,10 @@ const Dashboard = () => {
           </Card>
         </Col>
         <Col md={6} className="mb-4">
-          <Card className="h-100">
+          <Card className="h-100 bg-card text-card-foreground border border-border">
             <Card.Body>
               <Card.Title>Custo Total</Card.Title>
-              <Card.Text className="h2 text-danger">
+              <Card.Text className="h2 text-danger dark:text-red-400">
                 {new Intl.NumberFormat('pt-BR', {
                   style: 'currency',
                   currency: 'BRL'
@@ -184,9 +217,79 @@ const Dashboard = () => {
         </Col>
       </Row>
 
+      {/* Seção de Estatísticas dos Colaboradores */}
+      <Row className="mb-4">
+        <Col>
+          <h3 className="mb-3">👥 Gestão de Talentos</h3>
+        </Col>
+      </Row>
+
+      <Row className="mb-4">
+        <Col md={3} className="mb-3">
+          <Card className="h-100 bg-card text-card-foreground border border-border">
+            <Card.Body className="text-center">
+              <div className="mb-2">
+                <span style={{ fontSize: '2rem' }}>👨‍💼</span>
+              </div>
+              <Card.Title className="h4 text-primary">
+                {loadingCollaborators ? '...' : collaboratorStats.total}
+              </Card.Title>
+              <Card.Text className="text-muted">
+                Total de Colaboradores
+              </Card.Text>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col md={3} className="mb-3">
+          <Card className="h-100 bg-card text-card-foreground border border-border">
+            <Card.Body className="text-center">
+              <div className="mb-2">
+                <span style={{ fontSize: '2rem' }}>✅</span>
+              </div>
+              <Card.Title className="h4 text-success">
+                {loadingCollaborators ? '...' : collaboratorStats.available}
+              </Card.Title>
+              <Card.Text className="text-muted">
+                Disponíveis para Compartilhamento
+              </Card.Text>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col md={3} className="mb-3">
+          <Card className="h-100 bg-card text-card-foreground border border-border">
+            <Card.Body className="text-center">
+              <div className="mb-2">
+                <span style={{ fontSize: '2rem' }}>🏢</span>
+              </div>
+              <Card.Title className="h4 text-info">
+                {loadingCollaborators ? '...' : collaboratorStats.clt}
+              </Card.Title>
+              <Card.Text className="text-muted">
+                Colaboradores CLT
+              </Card.Text>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col md={3} className="mb-3">
+          <Card className="h-100 bg-card text-card-foreground border border-border">
+            <Card.Body className="text-center">
+              <div className="mb-2">
+                <span style={{ fontSize: '2rem' }}>💼</span>
+              </div>
+              <Card.Title className="h4 text-warning">
+                {loadingCollaborators ? '...' : collaboratorStats.pj}
+              </Card.Title>
+              <Card.Text className="text-muted">
+                Colaboradores PJ
+              </Card.Text>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+
       <Row>
         <Col>
-          <Card className="shadow">
+          <Card className="shadow bg-card text-card-foreground border border-border">
             <Card.Body>
               <ProjectCharts transactions={filteredTransactions} />
             </Card.Body>

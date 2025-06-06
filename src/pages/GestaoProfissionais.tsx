@@ -1,276 +1,463 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Table, Button } from 'react-bootstrap';
-import FilterPanel from '../components/FilterPanel';
-import CustosGrafico from '../components/gestao-profissionais/CustosGrafico';
-import UploadProfissionais from '../components/gestao-profissionais/UploadProfissionais';
-import { useProfissionaisData } from '../hooks/useProfissionaisData';
-import { formatCurrency } from '../utils/formatters';
+import { Container, Row, Col, Card, Button, Tab, Tabs } from 'react-bootstrap';
+import { motion } from 'framer-motion';
+import { useTheme } from '../contexts/ThemeContext';
+import WebGLBackground from '../components/talent-management/WebGLBackground';
+import AIChat from '../components/talent-management/AIChat';
+import SupabaseMCPDemo from '../components/talent-management/SupabaseMCPDemo';
+import MCPActivationGuide from '../components/talent-management/MCPActivationGuide';
+import { useQuery } from '@tanstack/react-query';
+import CollaboratorsViewer from '../components/talent-management/CollaboratorsViewer';
+import { collaboratorsService, Collaborator } from '../lib/supabaseCollaboratorsService';
 
-interface ProfissionalCusto {
-  tipo: string;
-  descricao: string;
-  valor: number;
-  periodo: string;
+// Componente de estatísticas
+interface StatsCardProps {
+  title: string;
+  value: number | string;
+  icon: string;
+  color: string;
+  subtitle?: string;
 }
 
-interface CustosPorTipo {
-  [key: string]: {
-    items: ProfissionalCusto[];
-    total: number;
-    percentual: number;
-  }
+const StatsCard: React.FC<StatsCardProps> = ({ title, value, icon, color, subtitle }) => {
+  const { theme } = useTheme();
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="h-100"
+    >
+      <Card className={`h-100 ${theme === 'dark' ? 'bg-dark text-white border-secondary' : ''}`}>
+        <Card.Body className="d-flex align-items-center">
+          <div className={`rounded-circle p-3 me-3`} style={{ backgroundColor: `${color}20` }}>
+            <span style={{ fontSize: '2rem', color }}>{icon}</span>
+          </div>
+          <div>
+            <h3 className="mb-0" style={{ color }}>{value}</h3>
+            <p className={`mb-0 ${theme === 'dark' ? 'text-light' : 'text-muted'}`}>{title}</p>
+            {subtitle && (
+              <small className={theme === 'dark' ? 'text-muted' : 'text-secondary'}>{subtitle}</small>
+            )}
+          </div>
+        </Card.Body>
+      </Card>
+    </motion.div>
+  );
+};
+
+// Componente de tabela de profissionais
+interface ProfessionalsTableProps {
+  professionals: Collaborator[];
+  searchTerm: string;
 }
 
-const GestaoProfissionais: React.FC = () => {
-  const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState<string>('');
-  const [projects, setProjects] = useState<string[]>([]);
-  const [years, setYears] = useState<number[]>([]);
-  const [custosPorTipo, setCustosPorTipo] = useState<CustosPorTipo>({});
-  const [isLoading, setIsLoading] = useState(true);
-  const [sortBy, setSortBy] = useState<'valor' | 'descricao' | 'periodo'>('valor');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-  const [showUploadModal, setShowUploadModal] = useState(false);
-  const { data, isLoading: isLoadingData, error, refetch } = useProfissionaisData();
+const ProfessionalsTable: React.FC<ProfessionalsTableProps> = ({ professionals, searchTerm }) => {
+  const { theme } = useTheme();
+  
+  const filteredProfessionals = professionals.filter(p => 
+    p.nome_completo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.proficiencia_cargo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.local_alocacao?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  // Carregar projetos e anos disponíveis
-  useEffect(() => {
-    const carregarDados = async () => {
-      try {
-        const transacoes = data?.transacoes || [];
-
-        // Extrair projetos únicos
-        const uniqueProjects = Array.from(new Set(transacoes.map(t => t.projeto || t.descricao || 'Sem Projeto')));
-        setProjects(uniqueProjects);
-
-        // Extrair anos únicos
-        const uniqueYears = Array.from(new Set(transacoes.map(t => {
-          const [, ano] = (t.periodo || '').split('/');
-          return parseInt(ano);
-        }))).filter(year => !isNaN(year)).sort((a, b) => b - a);
-
-        setYears(uniqueYears);
-        if (uniqueYears.length > 0) {
-          setSelectedYear(uniqueYears[0]);
-        }
-      } catch (error) {
-        console.error('Erro ao carregar dados:', error);
-      }
-    };
-
-    carregarDados();
-  }, [data]);
-
-  // Carregar custos dos profissionais quando projeto, ano ou mês mudar
-  useEffect(() => {
-    const carregarCustosProfissionais = async () => {
-      setIsLoading(true);
-      try {
-        const transacoes = data?.transacoes || [];
-
-        // Filtrar transações por projeto, ano e mês selecionados
-        const custosFiltrados = transacoes.filter(t => {
-          const [mes, ano] = (t.periodo || '').split('/');
-          const anoMatch = parseInt(ano) === selectedYear;
-          const mesMatch = !selectedMonth || mes === selectedMonth;
-          const projetoMatch = selectedProjects.length === 0 || selectedProjects.includes(t.projeto || t.descricao || '');
-          const contaResumo = (t.contaResumo || '').toUpperCase();
-          const tipoMatch = ['CLT', 'OUTROS', 'SUBCONTRATADOS'].some(tipo => 
-            contaResumo === tipo || contaResumo.includes(tipo)
-          );
-
-          return anoMatch && mesMatch && projetoMatch && tipoMatch;
-        });
-
-        // Calcular total geral primeiro
-        const totalGeral = custosFiltrados.reduce((acc, t) => acc + Math.abs(t.valor), 0);
-
-        // Agrupar por tipo
-        const custosAgrupados: CustosPorTipo = {};
-
-        custosFiltrados.forEach(t => {
-          const tipo = t.contaResumo || 'Outros';
-          if (!custosAgrupados[tipo]) {
-            custosAgrupados[tipo] = {
-              items: [],
-              total: 0,
-              percentual: 0
-            };
-          }
-
-          const custo: ProfissionalCusto = {
-            tipo,
-            descricao: t.denominacaoConta || t.descricao,
-            valor: Math.abs(t.valor),
-            periodo: t.periodo
-          };
-
-          custosAgrupados[tipo].items.push(custo);
-          custosAgrupados[tipo].total += Math.abs(t.valor);
-        });
-
-        // Calcular percentuais
-        Object.values(custosAgrupados).forEach(grupo => {
-          grupo.percentual = (grupo.total / totalGeral) * 100;
-          // Ordenar items do grupo
-          grupo.items.sort((a, b) => {
-            if (sortBy === 'valor') {
-              return sortDirection === 'desc' ? b.valor - a.valor : a.valor - b.valor;
-            }
-            if (sortBy === 'descricao') {
-              return sortDirection === 'desc' 
-                ? b.descricao.localeCompare(a.descricao)
-                : a.descricao.localeCompare(b.descricao);
-            }
-            // periodo
-            return sortDirection === 'desc'
-              ? b.periodo.localeCompare(a.periodo)
-              : a.periodo.localeCompare(b.periodo);
-          });
-        });
-
-        setCustosPorTipo(custosAgrupados);
-      } catch (error) {
-        console.error('Erro ao carregar custos:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    carregarCustosProfissionais();
-  }, [selectedProjects, selectedYear, selectedMonth, sortBy, sortDirection, data]);
-
-  const handleSort = (column: 'valor' | 'descricao' | 'periodo') => {
-    if (sortBy === column) {
-      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortBy(column);
-      setSortDirection('desc');
+  const getSkillsText = (professional: Collaborator): string => {
+    const skills = [];
+    if (professional.javascript && professional.javascript !== 'Sem conhecimento') {
+      skills.push(`JavaScript (${professional.javascript})`);
     }
+    if (professional.python && professional.python !== 'Sem conhecimento') {
+      skills.push(`Python (${professional.python})`);
+    }
+    if (professional.java && professional.java !== 'Sem conhecimento') {
+      skills.push(`Java (${professional.java})`);
+    }
+    if (professional.react && professional.react !== 'Sem conhecimento') {
+      skills.push(`React (${professional.react})`);
+    }
+    if (professional.angular && professional.angular !== 'Sem conhecimento') {
+      skills.push(`Angular (${professional.angular})`);
+    }
+    if (professional.aws && professional.aws !== 'Sem conhecimento') {
+      skills.push(`AWS (${professional.aws})`);
+    }
+    if (professional.azure && professional.azure !== 'Sem conhecimento') {
+      skills.push(`Azure (${professional.azure})`);
+    }
+    
+    return skills.slice(0, 3).join(', ') + (skills.length > 3 ? '...' : '');
   };
 
-  // Calcular total geral
-  const totalGeral = Object.values(custosPorTipo).reduce((acc, { total }) => acc + total, 0);
+  return (
+    <Card className={theme === 'dark' ? 'bg-dark text-white border-secondary' : ''}>
+      <Card.Header>
+        <h5 className="mb-0">
+          📋 Profissionais Cadastrados ({filteredProfessionals.length})
+        </h5>
+      </Card.Header>
+      <Card.Body className="p-0">
+        <div style={{ maxHeight: '600px', overflowY: 'auto' }}>
+          <table className={`table table-hover mb-0 ${theme === 'dark' ? 'table-dark' : ''}`}>
+            <thead className={theme === 'dark' ? 'table-dark' : 'table-light'}>
+              <tr>
+                <th>Nome</th>
+                <th>Cargo</th>
+                <th>Local</th>
+                <th>Skills</th>
+                <th>Disponibilidade</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredProfessionals.map((professional) => (
+                <motion.tr
+                  key={professional.id}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  whileHover={{ backgroundColor: theme === 'dark' ? '#374151' : '#f8f9fa' }}
+                >
+                  <td>
+                    <div>
+                      <strong>{professional.nome_completo || 'N/A'}</strong>
+                      <br />
+                      <small className={theme === 'dark' ? 'text-muted' : 'text-secondary'}>
+                        {professional.email || 'Email não informado'}
+                      </small>
+                    </div>
+                  </td>
+                  <td>
+                    <span className="badge bg-primary">
+                      {professional.proficiencia_cargo || 'N/A'}
+                    </span>
+                    <br />
+                    <small>{professional.regime || 'N/A'}</small>
+                  </td>
+                  <td>{professional.local_alocacao || 'N/A'}</td>
+                  <td>
+                    <small>{getSkillsText(professional) || 'Não informado'}</small>
+                  </td>
+                  <td>
+                    {professional.disponivel_compartilhamento ? (
+                      <span className="badge bg-success">
+                        {professional.percentual_compartilhamento || '100'}% disponível
+                      </span>
+                    ) : (
+                      <span className="badge bg-warning">Não disponível</span>
+                    )}
+                  </td>
+                </motion.tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card.Body>
+    </Card>
+  );
+};
 
-  // Ordenar os tipos de custo por total
-  const tiposOrdenados = Object.entries(custosPorTipo)
-    .sort(([, a], [, b]) => b.total - a.total);
+// Componente principal
+const GestaoProfissionais: React.FC = () => {
+  const { theme } = useTheme();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState('dashboard');
 
-  if (isLoadingData) {
-    return <div>Carregando...</div>;
+  // Query para buscar colaboradores reais do Supabase
+  const { data: professionals = [], isLoading, error } = useQuery({
+    queryKey: ['collaborators-real'],
+    queryFn: async (): Promise<Collaborator[]> => {
+      try {
+        return await collaboratorsService.getAllCollaborators();
+      } catch (error) {
+        console.error('Erro ao buscar colaboradores:', error);
+        throw error;
+      }
+    },
+    refetchInterval: 30000, // Atualiza a cada 30 segundos
+  });
+
+  // Calcular estatísticas
+  const stats = {
+    total: professionals.length,
+    available: professionals.filter(p => p.disponivel_compartilhamento === true).length,
+    javascript: professionals.filter(p => p.javascript && p.javascript !== 'Sem conhecimento').length,
+    react: professionals.filter(p => p.react && p.react !== 'Sem conhecimento').length,
+    aws: professionals.filter(p => p.aws && p.aws !== 'Sem conhecimento').length,
+    senior: professionals.filter(p => 
+      p.proficiencia_cargo?.toLowerCase().includes('sênior') || 
+      p.proficiencia_cargo?.toLowerCase().includes('senior')
+    ).length,
+  };
+
+  if (isLoading) {
+    return (
+      <Container fluid className="py-4">
+        <div className="text-center">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Carregando...</span>
+          </div>
+          <p className="mt-3">Carregando dados dos profissionais...</p>
+        </div>
+      </Container>
+    );
   }
 
   if (error) {
-    return <div>Erro ao carregar dados: {error.message}</div>;
+    return (
+      <Container fluid className="py-4">
+        <div className="alert alert-danger" role="alert">
+          <h4 className="alert-heading">Erro ao carregar dados</h4>
+          <p>Não foi possível conectar com o banco de dados dos profissionais.</p>
+          <p className="mb-0">Erro: {(error as Error).message}</p>
+        </div>
+      </Container>
+    );
   }
 
   return (
-    <Container fluid className="py-3">
-      <Row className="mb-4">
-        <Col>
-          <div className="d-flex justify-content-between align-items-center">
-            <div>
-              <h1>Gestão de Profissionais</h1>
-              <p className="text-muted">Gerencie os profissionais alocados nos projetos</p>
-            </div>
-            <Button 
-              variant="primary" 
-              onClick={() => setShowUploadModal(true)}
-              className="align-self-start"
-            >
-              <i className="bi bi-upload me-2"></i>
-              Importar Profissionais
-            </Button>
-          </div>
-        </Col>
-      </Row>
+    <div className="position-relative min-vh-100">
+      {/* Background WebGL */}
+      <WebGLBackground />
+      
+      <Container fluid className="py-4 position-relative" style={{ zIndex: 10 }}>
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="mb-4"
+        >
+          <Row className="align-items-center">
+            <Col>
+              <h1 className={`mb-2 ${theme === 'dark' ? 'text-white' : 'text-dark'}`}>
+                🎯 Gestão de Talentos HITSS
+              </h1>
+              <p className={theme === 'dark' ? 'text-light' : 'text-muted'}>
+                Sistema avançado de gestão de profissionais com IA integrada
+              </p>
+            </Col>
+          </Row>
+        </motion.div>
 
-      <FilterPanel
-        projects={projects}
-        selectedProjects={selectedProjects}
-        years={years}
-        selectedYear={selectedYear}
-        selectedMonth={selectedMonth}
-        onProjectChange={setSelectedProjects}
-        onYearChange={setSelectedYear}
-        onMonthChange={setSelectedMonth}
-      />
+        {/* Tabs de navegação */}
+        <Tabs
+          activeKey={activeTab}
+          onSelect={(k) => setActiveTab(k || 'dashboard')}
+          className="mb-4"
+        >
+          <Tab eventKey="dashboard" title="📊 Dashboard">
+            {/* Cards de estatísticas */}
+            <Row className="mb-4">
+              <Col md={3} className="mb-3">
+                <StatsCard
+                  title="Total de Profissionais"
+                  value={stats.total}
+                  icon="👥"
+                  color="#4F46E5"
+                  subtitle="Cadastrados no sistema"
+                />
+              </Col>
+              <Col md={3} className="mb-3">
+                <StatsCard
+                  title="Disponíveis"
+                  value={stats.available}
+                  icon="✅"
+                  color="#059669"
+                  subtitle="Para compartilhamento"
+                />
+              </Col>
+              <Col md={3} className="mb-3">
+                <StatsCard
+                  title="JavaScript/React"
+                  value={`${stats.javascript}/${stats.react}`}
+                  icon="⚛️"
+                  color="#F59E0B"
+                  subtitle="Frontend developers"
+                />
+              </Col>
+              <Col md={3} className="mb-3">
+                <StatsCard
+                  title="Seniores"
+                  value={stats.senior}
+                  icon="🎖️"
+                  color="#DC2626"
+                  subtitle="Profissionais experientes"
+                />
+              </Col>
+            </Row>
 
-      <Row className="mt-4">
-        <Col lg={5}>
-          <div className="sticky-top" style={{ top: '1rem', zIndex: 100 }}>
-            <CustosGrafico custosPorTipo={custosPorTipo} />
-          </div>
-        </Col>
-        <Col lg={7}>
-          <Card>
-            <Card.Body>
-              <Card.Title className="d-flex justify-content-between align-items-center mb-4">
-                <span>Custos por Profissional</span>
-                <span className="text-primary">Total Geral: {formatCurrency(totalGeral)}</span>
-              </Card.Title>
-
-              {isLoading ? (
-                <div className="text-center">Carregando...</div>
-              ) : tiposOrdenados.length === 0 ? (
-                <div className="text-center">Nenhum dado encontrado</div>
-              ) : (
-                tiposOrdenados.map(([tipo, { items, total, percentual }]) => (
-                  <div key={tipo} className="mb-4">
-                    <h5 className="d-flex justify-content-between align-items-center mb-3">
-                      <span className="fw-bold">{tipo}</span>
-                      <div>
-                        <span className="text-muted me-3">
-                          {percentual.toFixed(1)}%
-                        </span>
-                        <span className="text-primary fw-bold">
-                          R$ {formatCurrency(total)}
-                        </span>
-                      </div>
-                    </h5>
-                    <Table responsive striped hover>
-                      <thead>
-                        <tr>
-                          <th style={{ cursor: 'pointer' }} onClick={() => handleSort('descricao')}>
-                            Descrição {sortBy === 'descricao' && (sortDirection === 'asc' ? '↑' : '↓')}
-                          </th>
-                          <th style={{ cursor: 'pointer' }} onClick={() => handleSort('periodo')}>
-                            Período {sortBy === 'periodo' && (sortDirection === 'asc' ? '↑' : '↓')}
-                          </th>
-                          <th 
-                            className="text-end" 
-                            style={{ cursor: 'pointer' }}
-                            onClick={() => handleSort('valor')}
-                          >
-                            Custo {sortBy === 'valor' && (sortDirection === 'asc' ? '↑' : '↓')}
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {items.map((custo, index) => (
-                          <tr key={index}>
-                            <td>{custo.descricao}</td>
-                            <td>{custo.periodo}</td>
-                            <td className="text-end">{formatCurrency(custo.valor)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </Table>
+            {/* Filtros de busca */}
+            <Row className="mb-4">
+              <Col md={6}>
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  <div className="input-group">
+                    <span className="input-group-text">🔍</span>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Buscar por nome, cargo ou localização..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
                   </div>
-                ))
-              )}
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
+                </motion.div>
+              </Col>
+            </Row>
+          </Tab>
 
-      <UploadProfissionais 
-        show={showUploadModal} 
-        onHide={() => setShowUploadModal(false)} 
-        onSuccess={refetch}
-      />
-    </Container>
+          <Tab eventKey="professionals" title="👨‍💻 Profissionais">
+            {/* Tabela de profissionais */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <ProfessionalsTable 
+                professionals={professionals} 
+                searchTerm={searchTerm}
+              />
+            </motion.div>
+          </Tab>
+
+                     <Tab eventKey="analytics" title="📈 Analytics">
+             <Row>
+               <Col md={6}>
+                 <Card className={theme === 'dark' ? 'bg-dark text-white border-secondary' : ''}>
+                   <Card.Header>
+                     <h5 className="mb-0">📊 Distribuição por Skills</h5>
+                   </Card.Header>
+                   <Card.Body>
+                     <div className="mb-3">
+                       <div className="d-flex justify-content-between">
+                         <span>JavaScript</span>
+                         <span>{stats.javascript}</span>
+                       </div>
+                       <div className="progress mb-2">
+                         <div 
+                           className="progress-bar bg-warning" 
+                           style={{ width: `${(stats.javascript / stats.total) * 100}%` }}
+                         ></div>
+                       </div>
+                     </div>
+                     
+                     <div className="mb-3">
+                       <div className="d-flex justify-content-between">
+                         <span>React</span>
+                         <span>{stats.react}</span>
+                       </div>
+                       <div className="progress mb-2">
+                         <div 
+                           className="progress-bar bg-info" 
+                           style={{ width: `${(stats.react / stats.total) * 100}%` }}
+                         ></div>
+                       </div>
+                     </div>
+
+                     <div className="mb-3">
+                       <div className="d-flex justify-content-between">
+                         <span>AWS</span>
+                         <span>{stats.aws}</span>
+                       </div>
+                       <div className="progress mb-2">
+                         <div 
+                           className="progress-bar bg-success" 
+                           style={{ width: `${(stats.aws / stats.total) * 100}%` }}
+                         ></div>
+                       </div>
+                     </div>
+                   </Card.Body>
+                 </Card>
+               </Col>
+               
+               <Col md={6}>
+                 <Card className={theme === 'dark' ? 'bg-dark text-white border-secondary' : ''}>
+                   <Card.Header>
+                     <h5 className="mb-0">🎯 Insights Rápidos</h5>
+                   </Card.Header>
+                   <Card.Body>
+                     <ul className="list-unstyled">
+                       <li className="mb-2">
+                         💡 <strong>{((stats.available / stats.total) * 100).toFixed(1)}%</strong> dos profissionais estão disponíveis para compartilhamento
+                       </li>
+                       <li className="mb-2">
+                         🚀 <strong>{((stats.react / stats.total) * 100).toFixed(1)}%</strong> têm conhecimento em React
+                       </li>
+                       <li className="mb-2">
+                         ☁️ <strong>{((stats.aws / stats.total) * 100).toFixed(1)}%</strong> têm experiência com AWS
+                       </li>
+                       <li className="mb-2">
+                         🎖️ <strong>{((stats.senior / stats.total) * 100).toFixed(1)}%</strong> são profissionais seniores
+                       </li>
+                     </ul>
+                   </Card.Body>
+                 </Card>
+               </Col>
+             </Row>
+
+             {/* Status e Guia MCP */}
+             <Row className="mt-4">
+               <Col md={12}>
+                 <MCPActivationGuide />
+               </Col>
+             </Row>
+
+             {/* Nova seção para dados reais do Supabase */}
+             <Row className="mb-4">
+               <Col md={12}>
+                 <CollaboratorsViewer 
+                   title="📊 Colaboradores Reais do Supabase"
+                   showActions={true}
+                 />
+               </Col>
+             </Row>
+
+             {/* Versão resumida para comparação */}
+             <Row className="mb-4">
+               <Col md={6}>
+                 <CollaboratorsViewer 
+                   title="📋 Últimos 10 Colaboradores"
+                   showActions={false}
+                   limit={10}
+                 />
+               </Col>
+               <Col md={6}>
+                 <SupabaseMCPDemo />
+               </Col>
+             </Row>
+           </Tab>
+        </Tabs>
+
+        {/* Mostrar tabela na aba dashboard também */}
+        {activeTab === 'dashboard' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            <ProfessionalsTable 
+              professionals={professionals.slice(0, 10)} 
+              searchTerm={searchTerm}
+            />
+            {professionals.length > 10 && (
+              <div className="text-center mt-3">
+                <Button 
+                  variant="outline-primary" 
+                  onClick={() => setActiveTab('professionals')}
+                >
+                  Ver todos os {professionals.length} profissionais
+                </Button>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </Container>
+
+      {/* Chat de IA */}
+      <AIChat professionals={professionals} />
+    </div>
   );
 };
 
