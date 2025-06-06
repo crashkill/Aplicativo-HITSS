@@ -51,7 +51,7 @@ const EditableCell: React.FC<EditableCellProps> = ({ initialValue, onSave, isEdi
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',
-    }).format(val);
+    }).format(Math.abs(val));
   };
 
   if (!isEditable) {
