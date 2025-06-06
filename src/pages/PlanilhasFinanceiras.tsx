@@ -180,6 +180,17 @@ const PlanilhasFinanceiras: React.FC = () => {
         const custoAjustadoAcumulado = Math.abs(acumulado.custo) - acumulado.desoneracao;
         acumulado.margem = acumulado.receita > 0 ? (1 - (custoAjustadoAcumulado / acumulado.receita)) * 100 : 0;
         
+        // Log debug para margem acumulada no mês 1 
+        if (i === 1) {
+          console.log(`Debug Margem Acumulada Mês ${i} - Projeto ${proj.projeto}:`, {
+            receitaAcumulada: acumulado.receita,
+            custoAcumulado: acumulado.custo,
+            desoneracaoAcumulada: acumulado.desoneracao,
+            custoAjustadoAcumulado: custoAjustadoAcumulado,
+            margemAcumuladaCalculada: acumulado.margem
+          });
+        }
+        
         proj.dados[i].acumulado = { ...acumulado };
       }
     });
