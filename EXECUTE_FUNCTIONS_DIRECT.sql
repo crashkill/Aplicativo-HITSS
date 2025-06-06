@@ -37,14 +37,13 @@ BEGIN
       valor
     FROM dre_hitss 
     WHERE EXTRACT(YEAR FROM TO_DATE(periodo, 'MM/YYYY')) = p_ano
-      AND relatorio = 'Realizado'  -- REGRA: Apenas registros Realizados
   ),
   receitas AS (
     SELECT SUM(valor) as total_receita
     FROM dados_ano WHERE natureza = 'RECEITA'
   ),
   custos AS (
-    SELECT SUM(ABS(valor)) as total_custo
+    SELECT SUM(valor) as total_custo
     FROM dados_ano WHERE natureza = 'CUSTO'
   ),
   projetos_count AS (
@@ -54,12 +53,12 @@ BEGIN
   SELECT 
     p_ano,
     COALESCE(r.total_receita, 0),
-    COALESCE(c.total_custo, 0),
+    ABS(COALESCE(c.total_custo, 0)),
     COALESCE(pc.total_projetos, 0),
-    COALESCE(r.total_receita, 0) - COALESCE(c.total_custo, 0),
+    COALESCE(r.total_receita, 0) + COALESCE(c.total_custo, 0),
     CASE 
       WHEN COALESCE(r.total_receita, 0) > 0 
-      THEN ((COALESCE(r.total_receita, 0) - COALESCE(c.total_custo, 0)) / COALESCE(r.total_receita, 0)) * 100
+      THEN ((COALESCE(r.total_receita, 0) + COALESCE(c.total_custo, 0)) / COALESCE(r.total_receita, 0)) * 100
       ELSE 0
     END
   FROM receitas r
@@ -90,14 +89,13 @@ BEGIN
     FROM dre_hitss 
     WHERE EXTRACT(YEAR FROM TO_DATE(periodo, 'MM/YYYY')) = p_ano
       AND projeto = ANY(p_projetos)
-      AND relatorio = 'Realizado'
   ),
   receitas AS (
     SELECT SUM(valor) as total_receita
     FROM dados_ano WHERE natureza = 'RECEITA'
   ),
   custos AS (
-    SELECT SUM(ABS(valor)) as total_custo
+    SELECT SUM(valor) as total_custo
     FROM dados_ano WHERE natureza = 'CUSTO'
   ),
   projetos_count AS (
@@ -107,12 +105,12 @@ BEGIN
   SELECT 
     p_ano,
     COALESCE(r.total_receita, 0),
-    COALESCE(c.total_custo, 0),
+    ABS(COALESCE(c.total_custo, 0)),
     COALESCE(pc.total_projetos, 0),
-    COALESCE(r.total_receita, 0) - COALESCE(c.total_custo, 0),
+    COALESCE(r.total_receita, 0) + COALESCE(c.total_custo, 0),
     CASE 
       WHEN COALESCE(r.total_receita, 0) > 0 
-      THEN ((COALESCE(r.total_receita, 0) - COALESCE(c.total_custo, 0)) / COALESCE(r.total_receita, 0)) * 100
+      THEN ((COALESCE(r.total_receita, 0) + COALESCE(c.total_custo, 0)) / COALESCE(r.total_receita, 0)) * 100
       ELSE 0
     END
   FROM receitas r
@@ -141,7 +139,6 @@ BEGIN
       ARRAY_AGG(DISTINCT projeto ORDER BY projeto) as projetos
     FROM dre_hitss
     WHERE projeto IS NOT NULL AND projeto != ''
-      AND relatorio = 'Realizado'
   )
   SELECT 
     s.total_proj,
@@ -171,10 +168,9 @@ BEGIN
     COUNT(CASE WHEN natureza = 'RECEITA' THEN 1 END),
     COUNT(CASE WHEN natureza = 'CUSTO' THEN 1 END),
     COALESCE(SUM(CASE WHEN natureza = 'RECEITA' THEN valor ELSE 0 END), 0),
-    COALESCE(SUM(CASE WHEN natureza = 'CUSTO' THEN ABS(valor) ELSE 0 END), 0),
-    COALESCE(SUM(CASE WHEN natureza = 'RECEITA' THEN valor ELSE -ABS(valor) END), 0)
-  FROM dre_hitss
-  WHERE relatorio = 'Realizado';
+    ABS(COALESCE(SUM(CASE WHEN natureza = 'CUSTO' THEN valor ELSE 0 END), 0)),
+    COALESCE(SUM(valor), 0)
+  FROM dre_hitss;
 END;
 $$;
 
