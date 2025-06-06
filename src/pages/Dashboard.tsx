@@ -164,46 +164,90 @@ const Dashboard = () => {
         </Col>
       </Row>
 
-      <Row>
-        <Col lg={6} className="mb-4">
+      {/* Seção de Estatísticas dos Colaboradores */}
+      <Row className="mb-4">
+        <Col>
+          <h3 className="mb-3">👥 Gestão de Talentos</h3>
+        </Col>
+      </Row>
+
+      <Row className="mb-4">
+        <Col md={3} className="mb-3">
           <Card className="h-100 bg-card text-card-foreground border border-border">
-            <Card.Header>
-              <Card.Title>Estatísticas dos Colaboradores</Card.Title>
-            </Card.Header>
-            <Card.Body>
-              {loadingCollaborators ? (
-                <p>Carregando dados dos colaboradores...</p>
-              ) : (
-                <Row>
-                  <Col md={6}>
-                    <div className="text-center">
-                      <div className="h4 text-primary">{collaboratorStats.total}</div>
-                      <div className="text-muted">Total</div>
-                    </div>
-                  </Col>
-                  <Col md={6}>
-                    <div className="text-center">
-                      <div className="h4 text-success">{collaboratorStats.available}</div>
-                      <div className="text-muted">Disponíveis</div>
-                    </div>
-                  </Col>
-                  <Col md={6}>
-                    <div className="text-center">
-                      <div className="h4 text-info">{collaboratorStats.clt}</div>
-                      <div className="text-muted">CLT</div>
-                    </div>
-                  </Col>
-                  <Col md={6}>
-                    <div className="text-center">
-                      <div className="h4 text-warning">{collaboratorStats.pj}</div>
-                      <div className="text-muted">PJ</div>
-                    </div>
-                  </Col>
-                </Row>
-              )}
+            <Card.Body className="text-center">
+              <div className="mb-2">
+                <span style={{ fontSize: '2rem' }}>👨‍💼</span>
+              </div>
+              <Card.Title className="h4 text-primary">
+                {loadingCollaborators ? '...' : collaboratorStats.total}
+              </Card.Title>
+              <Card.Text className="text-muted">
+                Total de Colaboradores
+              </Card.Text>
             </Card.Body>
           </Card>
         </Col>
+        <Col md={3} className="mb-3">
+          <Card className="h-100 bg-card text-card-foreground border border-border">
+            <Card.Body className="text-center">
+              <div className="mb-2">
+                <span style={{ fontSize: '2rem' }}>✅</span>
+              </div>
+              <Card.Title className="h4 text-success">
+                {loadingCollaborators ? '...' : collaboratorStats.available}
+              </Card.Title>
+              <Card.Text className="text-muted">
+                Disponíveis para Compartilhamento
+              </Card.Text>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col md={3} className="mb-3">
+          <Card className="h-100 bg-card text-card-foreground border border-border">
+            <Card.Body className="text-center">
+              <div className="mb-2">
+                <span style={{ fontSize: '2rem' }}>🏢</span>
+              </div>
+              <Card.Title className="h4 text-info">
+                {loadingCollaborators ? '...' : collaboratorStats.clt}
+              </Card.Title>
+              <Card.Text className="text-muted">
+                Colaboradores CLT
+              </Card.Text>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col md={3} className="mb-3">
+          <Card className="h-100 bg-card text-card-foreground border border-border">
+            <Card.Body className="text-center">
+              <div className="mb-2">
+                <span style={{ fontSize: '2rem' }}>💼</span>
+              </div>
+              <Card.Title className="h4 text-warning">
+                {loadingCollaborators ? '...' : collaboratorStats.pj}
+              </Card.Title>
+              <Card.Text className="text-muted">
+                Colaboradores PJ
+              </Card.Text>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Seção de Dados DRE do Supabase */}
+      <Row className="mb-4">
+        <Col>
+          <h3 className="mb-3">📊 Dados DRE - Supabase</h3>
+        </Col>
+      </Row>
+
+      <Row className="mb-4">
+        <Col>
+          <DREViewer />
+        </Col>
+      </Row>
+
+      <Row>
         <Col lg={6} className="mb-4">
           <Card className="h-100 bg-card text-card-foreground border border-border">
             <Card.Header>
@@ -240,12 +284,6 @@ const Dashboard = () => {
       <Row>
         <Col className="mb-4">
           <ProjectCharts transactions={[]} />
-        </Col>
-      </Row>
-
-      <Row>
-        <Col>
-          <DREViewer />
         </Col>
       </Row>
     </Container>
