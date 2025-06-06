@@ -16,7 +16,7 @@ DROP FUNCTION IF EXISTS get_estatisticas_gerais();
 -- SEGUNDO: RECRIAR COM TIPOS CORRETOS
 -- ============================================
 
--- 1. FUNCTION: Dashboard Summary (por ano)
+-- 1. FUNCTION: Dashboard Summary (por ano, com regras de negócio)
 CREATE OR REPLACE FUNCTION get_dashboard_summary(p_ano INTEGER)
 RETURNS TABLE(
   ano INTEGER,
@@ -30,32 +30,43 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
   RETURN QUERY
-  WITH dados_ano AS (
+  WITH dados_base AS (
     SELECT 
       projeto,
       natureza,
+      conta_resumo,
       valor
     FROM dre_hitss 
     WHERE EXTRACT(YEAR FROM TO_DATE(periodo, 'MM/YYYY')) = p_ano
   ),
   receitas AS (
     SELECT SUM(valor) as total_receita
-    FROM dados_ano WHERE natureza = 'RECEITA'
+    FROM dados_base 
+    WHERE 
+      (natureza = 'RECEITA' AND conta_resumo = 'RECEITA DEVENGADA')
+      OR
+      (conta_resumo = 'DESONERAÇÃO DA FOLHA')
   ),
   custos AS (
     SELECT SUM(valor) as total_custo
-    FROM dados_ano WHERE natureza = 'CUSTO'
+    FROM dados_base 
+    WHERE natureza = 'CUSTO' 
+      AND (
+        conta_resumo ILIKE '%CLT%' OR
+        conta_resumo ILIKE '%SUBCONTRATADOS%' OR
+        conta_resumo ILIKE '%OUTROS%'
+      )
   ),
   projetos_count AS (
     SELECT COUNT(DISTINCT projeto) as total_projetos
-    FROM dados_ano
+    FROM dados_base
   )
   SELECT 
     p_ano,
     COALESCE(r.total_receita, 0),
-    ABS(COALESCE(c.total_custo, 0)),
+    ABS(COALESCE(c.total_custo, 0)), -- Custo como valor positivo
     COALESCE(pc.total_projetos, 0),
-    COALESCE(r.total_receita, 0) + COALESCE(c.total_custo, 0),
+    COALESCE(r.total_receita, 0) + COALESCE(c.total_custo, 0), -- Margem (receita + custo negativo)
     CASE 
       WHEN COALESCE(r.total_receita, 0) > 0 
       THEN ((COALESCE(r.total_receita, 0) + COALESCE(c.total_custo, 0)) / COALESCE(r.total_receita, 0)) * 100
@@ -67,7 +78,7 @@ BEGIN
 END;
 $$;
 
--- 2. FUNCTION: Dashboard Summary Filtrado (por projetos específicos)
+-- 2. FUNCTION: Dashboard Summary Filtrado (por projetos, com regras de negócio)
 CREATE OR REPLACE FUNCTION get_dashboard_summary_filtered(p_ano INTEGER, p_projetos TEXT[])
 RETURNS TABLE(
   ano INTEGER,
@@ -81,10 +92,11 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
   RETURN QUERY
-  WITH dados_ano AS (
+  WITH dados_base AS (
     SELECT 
       projeto,
       natureza,
+      conta_resumo,
       valor
     FROM dre_hitss 
     WHERE EXTRACT(YEAR FROM TO_DATE(periodo, 'MM/YYYY')) = p_ano
@@ -92,22 +104,32 @@ BEGIN
   ),
   receitas AS (
     SELECT SUM(valor) as total_receita
-    FROM dados_ano WHERE natureza = 'RECEITA'
+    FROM dados_base 
+    WHERE 
+      (natureza = 'RECEITA' AND conta_resumo = 'RECEITA DEVENGADA')
+      OR
+      (conta_resumo = 'DESONERAÇÃO DA FOLHA')
   ),
   custos AS (
     SELECT SUM(valor) as total_custo
-    FROM dados_ano WHERE natureza = 'CUSTO'
+    FROM dados_base 
+    WHERE natureza = 'CUSTO'
+      AND (
+        conta_resumo ILIKE '%CLT%' OR
+        conta_resumo ILIKE '%SUBCONTRATADOS%' OR
+        conta_resumo ILIKE '%OUTROS%'
+      )
   ),
   projetos_count AS (
     SELECT COUNT(DISTINCT projeto) as total_projetos
-    FROM dados_ano
+    FROM dados_base
   )
   SELECT 
     p_ano,
     COALESCE(r.total_receita, 0),
-    ABS(COALESCE(c.total_custo, 0)),
+    ABS(COALESCE(c.total_custo, 0)), -- Custo como valor positivo
     COALESCE(pc.total_projetos, 0),
-    COALESCE(r.total_receita, 0) + COALESCE(c.total_custo, 0),
+    COALESCE(r.total_receita, 0) + COALESCE(c.total_custo, 0), -- Margem (receita + custo negativo)
     CASE 
       WHEN COALESCE(r.total_receita, 0) > 0 
       THEN ((COALESCE(r.total_receita, 0) + COALESCE(c.total_custo, 0)) / COALESCE(r.total_receita, 0)) * 100

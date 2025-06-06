@@ -7,6 +7,7 @@ import DREViewer from '../components/dre/DREViewer'
 import { dreSupabaseViews, DashboardSummary, MetadadosProjeto } from '../services/dreSupabaseViews'
 import { db } from '../db/database'
 import type { Transacao } from '../db/database'
+import { supabase } from '../services/supabaseClient'
 
 const Dashboard = () => {
   // Estados para dados processados pelo Supabase (regras de negócio centralizadas)

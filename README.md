@@ -281,3 +281,37 @@ npm run dev
 **🎯 Sistema HITSS - Transformando gestão em resultados!**
 
 **Documentação completa disponível em:** [docs/README.md](./docs/README.md)
+
+---
+
+## Adicionar documentação sobre como executar o projeto em ambiente de desenvolvimento e produção.
+- Detalhar as variáveis de ambiente necessárias no arquivo `.env`.
+
+**Contribuindo**
+
+---
+
+## Histórico de Decisões e Soluções
+
+Esta seção documenta decisões de arquitetura e soluções para problemas específicos encontrados durante o desenvolvimento, servindo como um guia para futuras manutenções.
+
+### Correção do Cálculo de Custo e Receita no Dashboard (Outubro de 2023)
+
+- **Problema:** O dashboard principal exibia um valor de "Custo Total" incorreto, muitas vezes maior que a "Receita Total". A investigação inicial mostrou que os cálculos estavam sendo feitos de forma genérica, sem aplicar as regras de negócio específicas da empresa.
+
+- **Investigação:**
+    1.  A primeira hipótese foi a falta de um filtro `relatorio = 'Realizado'`, mas isso se provou incorreto.
+    2.  A análise de uma aplicação de referência (`app-financeiro`) revelou a lógica correta de cálculo, que era processada no frontend.
+    3.  A lógica correta não estava replicada no backend (Supabase), onde as funções SQL simplesmente somavam todos os valores de `natureza = 'CUSTO'` e `natureza = 'RECEITA'`. O erro principal era que alguns custos eram registrados como positivos, e a função `ABS()` era aplicada a cada linha *antes* da soma, inflando o total.
+
+- **Solução Implementada:**
+    1.  **Centralização no Backend:** A lógica de negócio para cálculo de receita e custo foi movida do frontend para as funções SQL no Supabase, garantindo uma única fonte da verdade.
+    2.  **Novas Regras de Negócio no SQL:** As funções `get_dashboard_summary` e `get_dashboard_summary_filtered` foram reescritas para aplicar filtros específicos no campo `conta_resumo`:
+        - **Receita Total:** Passou a ser a soma de `valor` onde a `conta_resumo` é `'RECEITA DEVENGADA'` ou `'DESONERAÇÃO DA FOLHA'`.
+        - **Custo Total:** Passou a ser a soma de `valor` onde a `conta_resumo` contém as palavras `'CLT'`, `'SUBCONTRATADOS'` ou `'OUTROS'`. A busca é feita com `ILIKE` para ser insensível a maiúsculas/minúsculas.
+    3.  **Cálculo da Margem:** A soma dos custos é feita com seus valores originais (negativos). A função `ABS()` é aplicada apenas no `total_custo` final que é retornado, para fins de exibição. A margem é calculada corretamente somando a receita com o custo (negativo).
+    4.  **Ajustes no Frontend:** O código do `Dashboard.tsx` foi limpo, removendo lógicas de cálculo duplicadas e corrigindo o caminho de importação do `supabaseClient` para `src/services/supabaseClient.ts`.
+
+- **Como Executar a Correção:** O arquivo `EXECUTE_FUNCTIONS_DIRECT.sql` contém o script final que deve ser executado diretamente no Editor SQL do Supabase para atualizar as funções.
+
+---
