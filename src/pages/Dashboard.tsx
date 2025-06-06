@@ -265,7 +265,11 @@ const Dashboard = () => {
         <Col className="mb-4">
           <Card className="shadow bg-card text-card-foreground border border-border">
             <Card.Body>
-              <ProjectCharts transactions={filteredTransactions} />
+              <ProjectCharts 
+                selectedYear={selectedYear} 
+                selectedProjects={selectedProjects} 
+                transactions={filteredTransactions} 
+              />
             </Card.Body>
           </Card>
         </Col>

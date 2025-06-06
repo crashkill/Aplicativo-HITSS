@@ -13,7 +13,7 @@ import {
 } from 'chart.js'
 import ChartDataLabels from 'chartjs-plugin-datalabels'
 import { Chart } from 'react-chartjs-2'
-import type { Transacao } from '../db/database'
+import { supabase } from '../services/supabaseClient'
 
 ChartJS.register(
   CategoryScale,
@@ -36,46 +36,154 @@ interface MonthData {
 }
 
 interface ProjectChartsProps {
-  transactions: Transacao[]
+  transactions?: any[] // Mantém compatibilidade mas não usa mais
+  selectedYear?: number
+  selectedProjects?: string[]
 }
 
-export function ProjectCharts({ transactions }: ProjectChartsProps) {
+export function ProjectCharts({ transactions, selectedYear = 2024, selectedProjects = [] }: ProjectChartsProps) {
   const [monthlyData, setMonthlyData] = useState<Map<string, MonthData>>(new Map())
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const monthMap = new Map<string, MonthData>()
+    const carregarDadosMensais = async () => {
+      try {
+        setLoading(true)
+        console.log(`📊 Carregando dados do gráfico para ano=${selectedYear}, projetos=[${selectedProjects.join(', ')}]`)
 
-    // Inicializar todos os meses do ano atual
-    for (let mes = 1; mes <= 12; mes++) {
-      monthMap.set(`${mes}`, { receita: 0, custo: 0, percentual: 0, margem: 0 })
+        // Inicializar todos os meses do ano
+        const monthMap = new Map<string, MonthData>()
+        for (let mes = 1; mes <= 12; mes++) {
+          monthMap.set(`${mes}`, { receita: 0, custo: 0, percentual: 0, margem: 0 })
+        }
+
+        // Buscar dados agregados por mês usando SQL otimizada
+        const { data: dadosMensais, error } = await supabase.rpc('sql', {
+          query: `
+            SELECT 
+              EXTRACT(MONTH FROM TO_DATE(periodo, 'MM/YYYY')) as mes,
+              natureza,
+              SUM(lancamento) as total
+            FROM dre_hitss 
+            WHERE relatorio = 'Realizado' 
+              AND periodo LIKE '%/${selectedYear}'
+              AND lancamento IS NOT NULL
+              ${selectedProjects.length > 0 ? `AND projeto = ANY(ARRAY[${selectedProjects.map(p => `'${p}'`).join(',')}])` : ''}
+            GROUP BY mes, natureza
+            ORDER BY mes, natureza
+          `
+        })
+
+        if (error) {
+          console.error('❌ Erro ao buscar dados mensais:', error)
+          // Fallback: buscar dados diretamente se a função SQL falhar
+          await buscarDadosDirecta(monthMap, selectedYear, selectedProjects)
+        } else {
+          console.log('✅ Dados mensais carregados:', dadosMensais?.length || 0, 'registros')
+          
+          // Processar dados agregados
+          dadosMensais?.forEach((row: any) => {
+            const mes = row.mes.toString()
+            const data = monthMap.get(mes)
+            
+            if (data) {
+              const valor = parseFloat(row.total) || 0
+              
+              if (row.natureza === 'RECEITA') {
+                data.receita += valor
+              } else if (row.natureza === 'CUSTO') {
+                data.custo += valor // Mantém o sinal original como no IndexedDB
+              }
+            }
+          })
+        }
+
+        // Calcular margens
+        monthMap.forEach((data) => {
+          data.margem = data.receita > 0 ? (data.receita - data.custo) / data.receita : 0
+        })
+
+        setMonthlyData(monthMap)
+        
+        // Log detalhado dos dados mensais
+        console.log('✅ Dados do gráfico processados por mês:')
+        monthMap.forEach((data, mes) => {
+          console.log(`  Mês ${mes}: Receita=${data.receita.toFixed(2)}, Custo=${data.custo.toFixed(2)}`)
+        })
+
+      } catch (error) {
+        console.error('❌ Erro ao carregar dados do gráfico:', error)
+      } finally {
+        setLoading(false)
+      }
     }
 
-    // Agrupa transações por mês
-    transactions.forEach((transacao) => {
-      if (!transacao.periodo) return
-      
-      const [mes] = transacao.periodo.split('/')
-      const data = monthMap.get(mes)
-      
-      if (data) {
-        if (transacao.natureza === 'RECEITA') {
-          data.receita += transacao.lancamento
-        } else {
-          data.custo += transacao.lancamento // Mantém o sinal negativo
-        }
+    carregarDadosMensais()
+  }, [selectedYear, selectedProjects])
+
+  // Função fallback para buscar dados diretamente
+  const buscarDadosDirecta = async (monthMap: Map<string, MonthData>, year: number, projects: string[]) => {
+    try {
+      // Buscar TODOS os dados sem limit
+      let query = supabase
+        .from('dre_hitss')
+        .select('periodo, natureza, lancamento')
+        .eq('relatorio', 'Realizado')
+        .like('periodo', `%/${year}`)
+        .not('lancamento', 'is', null)
+
+      // Aplicar filtro de projetos se selecionados
+      if (projects.length > 0) {
+        query = query.in('projeto', projects)
       }
-    })
 
-    // Calcula o percentual e margem
-    monthMap.forEach((data) => {
-      // Percentual não é mais usado
-      data.percentual = 0
-      // Margem = (Receita - |Custo|) / Receita
-      data.margem = data.receita > 0 ? (data.receita - Math.abs(data.custo)) / data.receita : 0
-    })
+      // Buscar todos os dados em lotes
+      let allData: any[] = []
+      let page = 0
+      const pageSize = 1000
+      
+      while (true) {
+        const { data: transacoes, error } = await query
+          .range(page * pageSize, (page + 1) * pageSize - 1)
 
-    setMonthlyData(monthMap)
-  }, [transactions])
+        if (error) {
+          console.error('❌ Erro ao buscar transações:', error)
+          break
+        }
+
+        if (!transacoes || transacoes.length === 0) break
+
+        allData = [...allData, ...transacoes]
+        console.log(`📄 Lote ${page + 1}: ${transacoes.length} registros carregados (total: ${allData.length})`)
+        
+        if (transacoes.length < pageSize) break
+        page++
+      }
+
+      console.log(`✅ Total carregado: ${allData.length} transações para processamento`)
+
+      // Processar todas as transações
+      allData.forEach((transacao) => {
+        if (!transacao.periodo) return
+        
+        const [mes] = transacao.periodo.split('/')
+        const data = monthMap.get(mes)
+        
+        if (data) {
+          const valor = parseFloat(transacao.lancamento) || 0
+          
+          if (transacao.natureza === 'RECEITA') {
+            data.receita += valor
+          } else if (transacao.natureza === 'CUSTO') {
+            data.custo += valor // Mantém o sinal original como no IndexedDB
+          }
+        }
+      })
+      
+    } catch (error) {
+      console.error('❌ Erro no fallback:', error)
+    }
+  }
 
   // Formatar valor em reais
   const formatCurrency = (value: number) => {
@@ -84,16 +192,6 @@ export function ProjectCharts({ transactions }: ProjectChartsProps) {
       currency: 'BRL',
       signDisplay: 'never'
     }).format(Math.abs(value))
-  }
-
-  // Formatar valor em milhões
-  const formatMillions = (value: number) => {
-    return `${(value / 1000000).toFixed(1)} Mi`
-  }
-
-  // Formatar percentual
-  const formatPercent = (value: number) => {
-    return `${(value * 100).toFixed(1)}%`
   }
 
   // Formatar mês para exibição
@@ -151,18 +249,18 @@ export function ProjectCharts({ transactions }: ProjectChartsProps) {
       },
       title: {
         display: true,
-        text: 'Análise Financeira por Mês',
+        text: `Análise Financeira por Mês - ${selectedYear}`,
         font: {
           size: 16,
           weight: 'bold' as const,
         },
         padding: 20,
-        color: getThemeColor('rgb(55, 65, 81)', '#f9fafb'), // Cor do foreground.dark
+        color: getThemeColor('rgb(55, 65, 81)', '#f9fafb'),
       },
       legend: {
         position: 'top' as const,
         labels: {
-          color: getThemeColor('rgb(71, 85, 105)', '#f9fafb'), // Cor do foreground.dark
+          color: getThemeColor('rgb(71, 85, 105)', '#f9fafb'),
         }
       },
       tooltip: {
@@ -175,21 +273,21 @@ export function ProjectCharts({ transactions }: ProjectChartsProps) {
         stacked: true,
         grid: {
           display: false,
-          color: getThemeColor('rgba(209, 213, 219, 0.5)', 'rgba(55, 65, 81, 0.5)') // Cor do border.dark com opacidade
+          color: getThemeColor('rgba(209, 213, 219, 0.5)', 'rgba(55, 65, 81, 0.5)')
         },
         ticks: {
-          color: getThemeColor('rgb(71, 85, 105)', 'rgb(148, 163, 184)') // Aprox. text-slate-600 / text-slate-400
+          color: getThemeColor('rgb(71, 85, 105)', 'rgb(148, 163, 184)')
         }
       },
       y: {
         stacked: true,
         grid: {
           display: false,
-          color: getThemeColor('rgba(209, 213, 219, 0.5)', 'rgba(55, 65, 81, 0.5)') // Cor do border.dark com opacidade
+          color: getThemeColor('rgba(209, 213, 219, 0.5)', 'rgba(55, 65, 81, 0.5)')
         },
         ticks: {
           callback: (value: any) => `R$ ${value}`,
-          color: getThemeColor('rgb(71, 85, 105)', 'rgb(148, 163, 184)') // Aprox. text-slate-600 / text-slate-400
+          color: getThemeColor('rgb(71, 85, 105)', 'rgb(148, 163, 184)')
         }
       }
     },
@@ -212,6 +310,14 @@ export function ProjectCharts({ transactions }: ProjectChartsProps) {
       },
     })),
   };
+
+  if (loading) {
+    return (
+      <div style={{ height: '600px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div>🔄 Carregando dados do gráfico...</div>
+      </div>
+    )
+  }
 
   return (
     <div style={{ height: '600px', width: '100%' }}>
