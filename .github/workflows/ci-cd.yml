@@ -9,7 +9,7 @@ on:
 
 # Permissões necessárias para GitHub Pages
 permissions:
-  contents: read
+  contents: write  # Mudado de read para write para permitir push de tags
   pages: write
   id-token: write
 
@@ -134,13 +134,11 @@ jobs:
           echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
 
-      - name: 🏷️ Create release tag
+      - name: 🏷️ Tag creation
         if: success()
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git tag -a "v${{ github.run_number }}" -m "🚀 Release v${{ github.run_number }} - HITSS"
-          git push origin "v${{ github.run_number }}"
+          echo "✅ Deploy successful - v${{ github.run_number }}"
+          echo "📝 Tag creation disabled for now to avoid permission issues"
 
   post-deploy-tests:
     name: 🧪 Post-Deploy Tests
