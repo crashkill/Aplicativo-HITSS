@@ -307,7 +307,7 @@ const PlanilhasFinanceiras: React.FC = () => {
                                     />
                                   </td>
                                   <td className="text-center" style={{ color: '#dc3545' }}>
-                                    {formatCurrency(dadosMes.acumulado.custo)}
+                                    {formatCurrency(Math.abs(dadosMes.acumulado.custo))}
                                   </td>
                                 </React.Fragment>
                               );
@@ -321,18 +321,24 @@ const PlanilhasFinanceiras: React.FC = () => {
                                 mensal: { receita: 0, desoneracao: 0, custo: 0, margem: 0 },
                                 acumulado: { receita: 0, desoneracao: 0, custo: 0, margem: 0 },
                               };
-                              const margemMensal = dadosMes.mensal.margem;
-                              const margemAcumulada = dadosMes.acumulado.margem;
+
+                              // Lógica de cálculo do app-financeiro
+                              const custoAjustadoMensal = Math.abs(dadosMes.mensal.custo) - dadosMes.mensal.desoneracao;
+                              const margemMensal = dadosMes.mensal.receita > 0 ? (1 - (custoAjustadoMensal / dadosMes.mensal.receita)) : 0;
+                              
+                              const custoAjustadoAcumulado = Math.abs(dadosMes.acumulado.custo) - dadosMes.acumulado.desoneracao;
+                              const margemAcumulada = dadosMes.acumulado.receita > 0 ? (1 - (custoAjustadoAcumulado / dadosMes.acumulado.receita)) : 0;
+
                               return (
                                 <React.Fragment key={mes}>
                                   <td className="text-center" style={{ 
-                                    color: margemMensal >= 7 ? '#28a745' : '#dc3545',
+                                    color: margemMensal >= 0.07 ? '#28a745' : '#dc3545',
                                     fontWeight: 'bold'
                                   }}>
                                     {formatPercent(margemMensal)}
                                   </td>
                                   <td className="text-center" style={{ 
-                                    color: margemAcumulada >= 7 ? '#28a745' : '#dc3545',
+                                    color: margemAcumulada >= 0.07 ? '#28a745' : '#dc3545',
                                     fontWeight: 'bold'
                                   }}>
                                     {formatPercent(margemAcumulada)}
