@@ -115,27 +115,18 @@ const Dashboard = () => {
 
     const totaisCalculados = transacoesRealizadas.reduce((acc, transacao, index) => {
       const valor = typeof transacao.lancamento === 'number' ? transacao.lancamento : 0;
-      const contaResumo = (transacao.contaResumo || '').toUpperCase().trim();
+      const contaResumo = ((transacao as any).conta_resumo || transacao.contaResumo || '').toUpperCase().trim();
       let adicionado = false; // Flag para log
 
-      // Regra para Receita: considera "RECEITA DEVENGADA"
-      if (transacao.natureza === 'RECEITA' && contaResumo === 'RECEITA DEVENGADA') {
+      // Regra SIMPLIFICADA para Receita: TODOS os registros de receita
+      if (transacao.natureza === 'RECEITA') {
         acc.receita += valor;
         adicionado = true;
       }
       
-      // Regra para Receita: considera também "DESONERAÇÃO DA FOLHA"
-      else if (contaResumo === 'DESONERAÇÃO DA FOLHA') {
-        acc.receita += valor;
-        adicionado = true;
-      }
-      
-      // Regra para Custo: considera CLT, SUBCONTRATADOS, OUTROS
-      else if (transacao.natureza === 'CUSTO' && 
-              (contaResumo.includes('CLT') || 
-               contaResumo.includes('SUBCONTRATADOS') || 
-               contaResumo.includes('OUTROS'))) {
-        acc.custo += valor;
+      // Regra SIMPLIFICADA para Custo: TODOS os registros de custo/despesa
+      else if (transacao.natureza === 'CUSTO') {
+        acc.custo += Math.abs(valor); // Garantir valor absoluto para custo
         adicionado = true;
       }
       
