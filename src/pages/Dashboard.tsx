@@ -1,24 +1,18 @@
 import { useEffect, useState } from 'react'
 import { Container, Row, Col, Card } from 'react-bootstrap'
-import { db } from '../db/database'
-import type { Transacao } from '../db/database'
 import { ProjectCharts } from '../components/ProjectCharts'
 import FilterPanel from '../components/FilterPanel'
 import { collaboratorsService } from '../lib/supabaseCollaboratorsService'
 import DREViewer from '../components/dre/DREViewer'
-import { dreSupabaseService } from '../services/dreSupabaseService'
+import { dreSupabaseViews, DashboardSummary, MetadadosProjeto } from '../services/dreSupabaseViews'
 
 const Dashboard = () => {
-  const [allTransactions, setAllTransactions] = useState<Transacao[]>([])
-  const [filteredTransactions, setFilteredTransactions] = useState<Transacao[]>([])
+  // Estados para dados processados pelo Supabase (regras de negócio centralizadas)
+  const [dashboardData, setDashboardData] = useState<DashboardSummary | null>(null)
+  const [metadata, setMetadata] = useState<MetadadosProjeto | null>(null)
   const [selectedProjects, setSelectedProjects] = useState<string[]>([])
   const [selectedYear, setSelectedYear] = useState<number>(2024)
-  const [projects, setProjects] = useState<string[]>([])
-  const [years, setYears] = useState<number[]>([])
-  const [totais, setTotais] = useState({
-    receita: 0,
-    custo: 0
-  })
+  const [loading, setLoading] = useState(true)
 
   // Estados para dados dos colaboradores
   const [collaboratorStats, setCollaboratorStats] = useState({
@@ -29,119 +23,45 @@ const Dashboard = () => {
   })
   const [loadingCollaborators, setLoadingCollaborators] = useState(true)
 
-  // Carregar todas as transações
+  // Carregar metadados (projetos e anos disponíveis)
   useEffect(() => {
-    const carregarDados = async () => {
+    const carregarMetadados = async () => {
       try {
-        // Buscar dados do Supabase em vez do DexieJS local
-        const transacoes = await dreSupabaseService.getAllRecords()
-        const transacoesTyped = transacoes as Transacao[]
-        setAllTransactions(transacoesTyped)
-
-        // Extrair lista única de projetos
-        const uniqueProjects = Array.from(new Set(transacoesTyped.map(t => t.descricao || 'Sem Projeto')))
-        setProjects(uniqueProjects)
-
-        // Extrair lista única de anos
-        const uniqueYears = Array.from(new Set(transacoesTyped.map(t => {
-          const [, ano] = (t.periodo || '').split('/')
-          return parseInt(ano)
-        }))).filter(year => !isNaN(year)).sort((a, b) => b - a) // Ordenar decrescente
-
-        setYears(uniqueYears)
+        console.log('🔄 Carregando metadados do Supabase...')
+        const metadados = await dreSupabaseViews.getMetadados()
+        setMetadata(metadados)
+        console.log('✅ Metadados carregados:', metadados)
       } catch (error) {
-        console.error('Erro ao carregar dados:', error)
+        console.error('❌ Erro ao carregar metadados:', error)
       }
     }
 
-    carregarDados()
+    carregarMetadados()
   }, [])
 
-  // Filtrar transações quando a seleção muda
+  // Carregar dados financeiros quando ano/projetos mudam
   useEffect(() => {
-    // <<< LOG: Verificar allTransactions
-    console.log(`[Dashboard Filtro Ano/Proj] Iniciando filtro. allTransactions.length: ${allTransactions.length}. 10 Primeiras:`, allTransactions.slice(0, 10));
-    console.log(`[Dashboard Filtro Ano/Proj] selectedYear: ${selectedYear}, selectedProjects: [${selectedProjects.join(', ')}]`);
-    
-    const filtered = allTransactions.filter((t, index) => { // Adicionado index
-      // Filtrar por projeto
-      const matchProject = selectedProjects.length === 0 || 
-        selectedProjects.includes(t.projeto || 'Sem Projeto');
-
-      // Filtrar por ano
-      const periodoOriginal = t.periodo || '';
-      const [, anoStr] = periodoOriginal.split('/');
-      const anoInt = parseInt(anoStr);
-      const matchYear = anoInt === selectedYear;
-      
-      // <<< LOG: Detalhes do filtro de ano (primeiras 10 tentativas)
-      if (index < 10) {
-          console.log(`[Dashboard Filtro Ano/Proj ${index}] periodo: '${periodoOriginal}', anoStr: '${anoStr}', anoInt: ${anoInt}, selectedYear: ${selectedYear}, matchYear: ${matchYear}`);
+    const carregarDashboard = async () => {
+      try {
+        setLoading(true)
+        console.log(`🔄 Carregando dashboard para ano=${selectedYear}, projetos=[${selectedProjects.join(', ')}]`)
+        
+        const dados = await dreSupabaseViews.getDashboardSummary(
+          selectedYear, 
+          selectedProjects.length > 0 ? selectedProjects : undefined
+        )
+        
+        setDashboardData(dados)
+        console.log('✅ Dashboard carregado:', dados)
+      } catch (error) {
+        console.error('❌ Erro ao carregar dashboard:', error)
+      } finally {
+        setLoading(false)
       }
+    }
 
-      return matchProject && matchYear;
-    });
-    
-    console.log(`[Dashboard Filtro Ano/Proj] Resultado (filtered):`, filtered.slice(0, 10));
-    
-    setFilteredTransactions(filtered);
-  }, [selectedProjects, selectedYear, allTransactions]);
-
-  // Calcular totais quando as transações filtradas mudam
-  useEffect(() => {
-    // Filtrar transações realizadas (não precisamos mais filtrar por Relatorio pois os dados já são filtrados no upload)
-    const transacoesRealizadas = filteredTransactions;
-    
-    console.log(`[Dashboard] Calculando totais sobre ${transacoesRealizadas.length} transações (para Ano=${selectedYear} e ProjetosSelecionados=[${selectedProjects.join(', ')}])`);
-
-    // Diagnóstico: listar todas as receitas para verificar o formato
-    const todasReceitas = transacoesRealizadas.filter(t => t.natureza === 'RECEITA');
-    console.log(`[Dashboard] Total de transações com natureza RECEITA: ${todasReceitas.length}`);
-    
-    // Listar os primeiros 5 registros de receita para verificar o formato
-    todasReceitas.slice(0, 5).forEach((t, i) => {
-      console.log(`[Dashboard] Receita #${i}: ContaResumo="${t.contaResumo}", Valor=${t.lancamento}, Período=${t.periodo}`);
-    });
-    
-    // Verificar registros específicos de RECEITA DEVENGADA
-    const receitasDevengadas = transacoesRealizadas.filter(t => 
-      (t.contaResumo || '').toUpperCase().trim() === 'RECEITA DEVENGADA');
-    console.log(`[Dashboard] Total de transações com ContaResumo "RECEITA DEVENGADA": ${receitasDevengadas.length}`);
-    
-    // Verificar registros de DESONERAÇÃO DA FOLHA
-    const receitasDesoneracao = transacoesRealizadas.filter(t => 
-      (t.contaResumo || '').toUpperCase().trim() === 'DESONERAÇÃO DA FOLHA');
-    console.log(`[Dashboard] Total de transações com ContaResumo "DESONERAÇÃO DA FOLHA": ${receitasDesoneracao.length}`);
-
-    const totaisCalculados = transacoesRealizadas.reduce((acc, transacao, index) => {
-      const valor = typeof transacao.lancamento === 'number' ? transacao.lancamento : 0;
-      const contaResumo = ((transacao as any).conta_resumo || transacao.contaResumo || '').toUpperCase().trim();
-      let adicionado = false; // Flag para log
-
-      // Regra SIMPLIFICADA para Receita: TODOS os registros de receita
-      if (transacao.natureza === 'RECEITA') {
-        acc.receita += valor;
-        adicionado = true;
-      }
-      
-      // Regra SIMPLIFICADA para Custo: TODOS os registros de custo/despesa
-      else if (transacao.natureza === 'CUSTO') {
-        acc.custo += Math.abs(valor); // Garantir valor absoluto para custo
-        adicionado = true;
-      }
-      
-      // <<< LOG: Detalhes da transação sendo processada no reduce (primeiras 20)
-      if (index < 20) { 
-          console.log(`[Dashboard Reduce ${index}] Transacao: Natureza=${transacao.natureza}, ContaResumo=${contaResumo}, Valor=${valor}, Adicionado=${adicionado}`);
-      }
-      
-      return acc;
-    }, { receita: 0, custo: 0 });
-
-    console.log(`[Dashboard] Totais calculados (Refinados): Receita=${totaisCalculados.receita}, Custo=${totaisCalculados.custo}`);
-
-    setTotais(totaisCalculados);
-  }, [filteredTransactions, selectedYear, selectedProjects]);
+    carregarDashboard()
+  }, [selectedYear, selectedProjects])
 
   // Carregar dados dos colaboradores
   useEffect(() => {
@@ -157,7 +77,6 @@ const Dashboard = () => {
         })
       } catch (error) {
         console.error('Erro ao carregar estatísticas dos colaboradores:', error)
-        // Manter valores zero em caso de erro
       } finally {
         setLoadingCollaborators(false)
       }
@@ -166,18 +85,25 @@ const Dashboard = () => {
     loadCollaboratorStats()
   }, [])
 
+  // Valores para exibição (dados processados pelo Supabase)
+  const receita = dashboardData?.total_receita || 0
+  const custo = dashboardData?.total_custo || 0
+  const margem = dashboardData?.margem_liquida || 0
+  const totalProjetos = dashboardData?.total_projetos || 0
+
   return (
     <Container>
       <Row className="mb-4">
         <Col>
           <h1>Dashboard</h1>
+          {loading && <div className="text-muted">🔄 Carregando dados financeiros...</div>}
         </Col>
       </Row>
 
       <FilterPanel
-        projects={projects}
+        projects={metadata?.projetos_lista || []}
         selectedProjects={selectedProjects}
-        years={years}
+        years={metadata?.anos_disponiveis || []}
         selectedYear={selectedYear}
         onProjectChange={setSelectedProjects}
         onYearChange={setSelectedYear}
@@ -192,7 +118,7 @@ const Dashboard = () => {
                 {new Intl.NumberFormat('pt-BR', {
                   style: 'currency',
                   currency: 'BRL'
-                }).format(totais.receita)}
+                }).format(receita)}
               </Card.Text>
             </Card.Body>
           </Card>
@@ -205,103 +131,121 @@ const Dashboard = () => {
                 {new Intl.NumberFormat('pt-BR', {
                   style: 'currency',
                   currency: 'BRL'
-                }).format(Math.abs(totais.custo))}
+                }).format(custo)}
               </Card.Text>
             </Card.Body>
           </Card>
         </Col>
       </Row>
 
-      {/* Seção de Estatísticas dos Colaboradores */}
-      <Row className="mb-4">
-        <Col>
-          <h3 className="mb-3">👥 Gestão de Talentos</h3>
-        </Col>
-      </Row>
-
-      <Row className="mb-4">
-        <Col md={3} className="mb-3">
+      <Row>
+        <Col md={6} className="mb-4">
           <Card className="h-100 bg-card text-card-foreground border border-border">
-            <Card.Body className="text-center">
-              <div className="mb-2">
-                <span style={{ fontSize: '2rem' }}>👨‍💼</span>
-              </div>
-              <Card.Title className="h4 text-primary">
-                {loadingCollaborators ? '...' : collaboratorStats.total}
-              </Card.Title>
-              <Card.Text className="text-muted">
-                Total de Colaboradores
+            <Card.Body>
+              <Card.Title>Margem Líquida</Card.Title>
+              <Card.Text className={`h2 ${margem >= 0 ? 'text-success dark:text-green-400' : 'text-danger dark:text-red-400'}`}>
+                {new Intl.NumberFormat('pt-BR', {
+                  style: 'currency',
+                  currency: 'BRL'
+                }).format(margem)}
               </Card.Text>
             </Card.Body>
           </Card>
         </Col>
-        <Col md={3} className="mb-3">
+        <Col md={6} className="mb-4">
           <Card className="h-100 bg-card text-card-foreground border border-border">
-            <Card.Body className="text-center">
-              <div className="mb-2">
-                <span style={{ fontSize: '2rem' }}>✅</span>
-              </div>
-              <Card.Title className="h4 text-success">
-                {loadingCollaborators ? '...' : collaboratorStats.available}
-              </Card.Title>
-              <Card.Text className="text-muted">
-                Disponíveis para Compartilhamento
-              </Card.Text>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={3} className="mb-3">
-          <Card className="h-100 bg-card text-card-foreground border border-border">
-            <Card.Body className="text-center">
-              <div className="mb-2">
-                <span style={{ fontSize: '2rem' }}>🏢</span>
-              </div>
-              <Card.Title className="h4 text-info">
-                {loadingCollaborators ? '...' : collaboratorStats.clt}
-              </Card.Title>
-              <Card.Text className="text-muted">
-                Colaboradores CLT
-              </Card.Text>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={3} className="mb-3">
-          <Card className="h-100 bg-card text-card-foreground border border-border">
-            <Card.Body className="text-center">
-              <div className="mb-2">
-                <span style={{ fontSize: '2rem' }}>💼</span>
-              </div>
-              <Card.Title className="h4 text-warning">
-                {loadingCollaborators ? '...' : collaboratorStats.pj}
-              </Card.Title>
-              <Card.Text className="text-muted">
-                Colaboradores PJ
+            <Card.Body>
+              <Card.Title>Total de Projetos</Card.Title>
+              <Card.Text className="h2 text-primary dark:text-blue-400">
+                {totalProjetos}
               </Card.Text>
             </Card.Body>
           </Card>
         </Col>
       </Row>
 
-      {/* Seção de Dados DRE do Supabase */}
-      <Row className="mb-4">
-        <Col>
-          <h3 className="mb-3">📊 Dados DRE - Supabase</h3>
+      <Row>
+        <Col lg={6} className="mb-4">
+          <Card className="h-100 bg-card text-card-foreground border border-border">
+            <Card.Header>
+              <Card.Title>Estatísticas dos Colaboradores</Card.Title>
+            </Card.Header>
+            <Card.Body>
+              {loadingCollaborators ? (
+                <p>Carregando dados dos colaboradores...</p>
+              ) : (
+                <Row>
+                  <Col md={6}>
+                    <div className="text-center">
+                      <div className="h4 text-primary">{collaboratorStats.total}</div>
+                      <div className="text-muted">Total</div>
+                    </div>
+                  </Col>
+                  <Col md={6}>
+                    <div className="text-center">
+                      <div className="h4 text-success">{collaboratorStats.available}</div>
+                      <div className="text-muted">Disponíveis</div>
+                    </div>
+                  </Col>
+                  <Col md={6}>
+                    <div className="text-center">
+                      <div className="h4 text-info">{collaboratorStats.clt}</div>
+                      <div className="text-muted">CLT</div>
+                    </div>
+                  </Col>
+                  <Col md={6}>
+                    <div className="text-center">
+                      <div className="h4 text-warning">{collaboratorStats.pj}</div>
+                      <div className="text-muted">PJ</div>
+                    </div>
+                  </Col>
+                </Row>
+              )}
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col lg={6} className="mb-4">
+          <Card className="h-100 bg-card text-card-foreground border border-border">
+            <Card.Header>
+              <Card.Title>Performance Financeira</Card.Title>
+            </Card.Header>
+            <Card.Body>
+              <div className="mb-3">
+                <div className="d-flex justify-content-between">
+                  <span>Margem %:</span>
+                  <span className={dashboardData?.margem_percentual && dashboardData.margem_percentual >= 0 ? 'text-success' : 'text-danger'}>
+                    {dashboardData?.margem_percentual?.toFixed(1) || '0.0'}%
+                  </span>
+                </div>
+              </div>
+              <div className="mb-3">
+                <div className="d-flex justify-content-between">
+                  <span>Ano Selecionado:</span>
+                  <span className="text-primary">{selectedYear}</span>
+                </div>
+              </div>
+              <div className="mb-3">
+                <div className="d-flex justify-content-between">
+                  <span>Projetos Filtrados:</span>
+                  <span className="text-info">
+                    {selectedProjects.length === 0 ? 'Todos' : selectedProjects.length}
+                  </span>
+                </div>
+              </div>
+            </Card.Body>
+          </Card>
         </Col>
       </Row>
 
-      <Row className="mb-4">
-        <Col>
-          <DREViewer />
+      <Row>
+        <Col className="mb-4">
+          <ProjectCharts transactions={[]} />
         </Col>
       </Row>
 
       <Row>
         <Col>
-          <Card className="shadow bg-card text-card-foreground border border-border">
-            <Card.Body>
-              <ProjectCharts transactions={filteredTransactions} />
-            </Card.Body>
-          </Card>
+          <DREViewer />
         </Col>
       </Row>
     </Container>
