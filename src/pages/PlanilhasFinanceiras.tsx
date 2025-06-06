@@ -4,6 +4,7 @@ import { formatCurrency, formatPercent } from '../utils/formatters';
 import { db } from '../db/database';
 import type { Transacao } from '../db/database';
 import FilterPanel from '../components/FilterPanel';
+import EditableCell from '../components/EditableCell';
 import { dreSupabaseViews, MetadadosProjeto } from '../services/dreSupabaseViews';
 
 interface DadosMes {
@@ -25,6 +26,7 @@ const PlanilhasFinanceiras: React.FC = () => {
   const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [meses] = useState(['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']);
+  const [lastDataMonth, setLastDataMonth] = useState(0);
 
   // Carregar metadados (projetos e anos disponíveis) do Supabase
   useEffect(() => {
@@ -43,6 +45,47 @@ const PlanilhasFinanceiras: React.FC = () => {
     carregarMetadados();
   }, []);
 
+  // Função para atualizar os dados da célula e recalcular
+  const handleCellUpdate = (projeto: string, mes: number, campo: keyof Omit<DadosMes, 'margem'>, novoValor: number) => {
+    setDados(currentDados => {
+      const novosDados = JSON.parse(JSON.stringify(currentDados));
+      const projetoParaAtualizar = novosDados.find(p => p.projeto === projeto);
+
+      if (!projetoParaAtualizar) return novosDados;
+
+      // Garante que o objeto para o mês exista
+      if (!projetoParaAtualizar.dados[mes]) {
+        projetoParaAtualizar.dados[mes] = {
+          mensal: { receita: 0, custo: 0, desoneracao: 0, margem: 0 },
+          acumulado: { receita: 0, custo: 0, desoneracao: 0, margem: 0 },
+        };
+      }
+      
+      projetoParaAtualizar.dados[mes].mensal[campo] = novoValor;
+      
+      const { receita, custo, desoneracao } = projetoParaAtualizar.dados[mes].mensal;
+      projetoParaAtualizar.dados[mes].mensal.margem = (receita + desoneracao) - custo;
+      
+      // Recalcula o acumulado para o projeto inteiro
+      let accReceita = 0, accCusto = 0, accDesoneracao = 0;
+      for (let m = 1; m <= 12; m++) {
+        const mesData = projetoParaAtualizar.dados[m];
+        if (mesData) {
+          accReceita += mesData.mensal.receita;
+          accCusto += mesData.mensal.custo;
+          accDesoneracao += mesData.mensal.desoneracao;
+          mesData.acumulado = {
+            receita: accReceita,
+            custo: accCusto,
+            desoneracao: accDesoneracao,
+            margem: (accReceita + accDesoneracao) - accCusto
+          };
+        }
+      }
+      return novosDados;
+    });
+  };
+
   // Carregar e processar dados financeiros do Supabase
   useEffect(() => {
     const carregarDadosFinanceiros = async () => {
@@ -50,89 +93,80 @@ const PlanilhasFinanceiras: React.FC = () => {
 
       setIsLoading(true);
       try {
-        const projetosParaBuscar = selectedProjects.length > 0 ? selectedProjects : metadata.projetos_lista;
-        
-        console.log('Buscando dados da planilha para:', { selectedYear, projetos: projetosParaBuscar });
+        const projetosParaBuscar =
+          selectedProjects.length > 0 ? selectedProjects : metadata.projetos_lista;
+
         const dadosCrus = await dreSupabaseViews.getPlanilhas(selectedYear, projetosParaBuscar);
-        
+
+        const ultimoMes = dadosCrus.reduce((maxMes, item) => {
+          const temDados =
+            Number(item.receita) > 0 || Number(item.custo) > 0 || Number(item.desoneracao) > 0;
+          return temDados && item.mes > maxMes ? item.mes : maxMes;
+        }, 0);
+        setLastDataMonth(ultimoMes);
+
         const dadosProcessados = processarDadosDaPlanilha(dadosCrus, projetosParaBuscar);
         setDados(dadosProcessados);
-
       } catch (error) {
         console.error('Erro ao carregar dados financeiros:', error);
-        setDados([]); // Limpa os dados em caso de erro
+        setDados([]);
       } finally {
         setIsLoading(false);
       }
     };
 
-    carregarDadosFinanceiros();
+    if (metadata) {
+      carregarDadosFinanceiros();
+    }
   }, [selectedYear, selectedProjects, metadata]);
 
   // Função para transformar dados da API para o formato do componente
   const processarDadosDaPlanilha = (dadosCrus: any[], projetos: string[]): DadosProjeto[] => {
-    const dadosAgrupados: { [key: string]: any } = {};
-
-    // Inicializa a estrutura para todos os projetos selecionados
+    const dadosFormatados: { [key: string]: DadosProjeto } = {};
+  
     projetos.forEach(p => {
-      dadosAgrupados[p] = {};
-      meses.forEach((_, index) => {
-        const mesNum = index + 1;
-        dadosAgrupados[p][`${mesNum}/${selectedYear}`] = {
-          mensal: { receita: 0, desoneracao: 0, custo: 0, margem: 0 },
-          acumulado: { receita: 0, desoneracao: 0, custo: 0, margem: 0 }
-        };
-      });
+      dadosFormatados[p] = { projeto: p, dados: {} };
     });
-
-    // Preenche com os dados da API
+  
     dadosCrus.forEach(item => {
-      if (dadosAgrupados[item.projeto]) {
-        dadosAgrupados[item.projeto][`${item.mes}/${selectedYear}`].mensal = {
-          receita: Number(item.receita),
-          desoneracao: Number(item.desoneracao),
-          custo: Number(item.custo), // Custo já vem como negativo ou zero
-          margem: 0, // Será calculado depois
-        };
+      const projeto = item.projeto;
+      if (!dadosFormatados[projeto]) {
+        dadosFormatados[projeto] = { projeto: projeto, dados: {} };
+      }
+      dadosFormatados[projeto].dados[item.mes] = {
+        mensal: {
+          receita: Number(item.receita || 0),
+          custo: Number(item.custo || 0),
+          desoneracao: Number(item.desoneracao || 0),
+          margem: 0 // Será calculado depois
+        },
+        acumulado: { receita: 0, custo: 0, desoneracao: 0, margem: 0 } // Será calculado depois
+      };
+    });
+  
+    Object.values(dadosFormatados).forEach(proj => {
+      let acumulado = { receita: 0, custo: 0, desoneracao: 0, margem: 0 };
+      for (let i = 1; i <= 12; i++) {
+        if (!proj.dados[i]) {
+          proj.dados[i] = {
+            mensal: { receita: 0, custo: 0, desoneracao: 0, margem: 0 },
+            acumulado: { ...acumulado } // Mantém o acumulado do mês anterior
+          };
+        } else {
+          const mensal = proj.dados[i].mensal;
+          mensal.margem = (mensal.receita + mensal.desoneracao) - mensal.custo;
+          
+          acumulado.receita += mensal.receita;
+          acumulado.custo += mensal.custo;
+          acumulado.desoneracao += mensal.desoneracao;
+          acumulado.margem = (acumulado.receita + acumulado.desoneracao) - acumulado.custo;
+          
+          proj.dados[i].acumulado = { ...acumulado };
+        }
       }
     });
-
-    // Calcula acumulados e margens
-    return projetos.map(p => {
-      let acumulado: DadosMes = { receita: 0, desoneracao: 0, custo: 0, margem: 0 };
-      
-      meses.forEach((_, index) => {
-        const mesNum = index + 1;
-        const chave = `${mesNum}/${selectedYear}`;
-        const dadosMes = dadosAgrupados[p][chave].mensal;
-
-        // Propagação de dados do último mês preenchido
-        if (dadosMes.receita === 0 && dadosMes.custo === 0 && mesNum > 1) {
-            const ultimoMesComDados = dadosAgrupados[p][`${mesNum - 1}/${selectedYear}`]?.mensal;
-            if (ultimoMesComDados) {
-                dadosMes.receita = ultimoMesComDados.receita;
-                dadosMes.custo = ultimoMesComDados.custo;
-                dadosMes.desoneracao = ultimoMesComDados.desoneracao;
-            }
-        }
-        
-        acumulado.receita += dadosMes.receita;
-        acumulado.custo += dadosMes.custo;
-        acumulado.desoneracao += dadosMes.desoneracao;
-
-        // Recalcula margem mensal
-        const custoAjustadoMensal = Math.abs(dadosMes.custo) - dadosMes.desoneracao;
-        dadosMes.margem = dadosMes.receita > 0 ? (1 - (custoAjustadoMensal / dadosMes.receita)) * 100 : 0;
-
-        // Recalcula margem acumulada
-        const custoAjustadoAcumulado = Math.abs(acumulado.custo) - acumulado.desoneracao;
-        acumulado.margem = acumulado.receita > 0 ? (1 - (custoAjustadoAcumulado / acumulado.receita)) * 100 : 0;
-
-        dadosAgrupados[p][chave].acumulado = { ...acumulado };
-      });
-      
-      return { projeto: p, dados: dadosAgrupados[p] };
-    });
+  
+    return Object.values(dadosFormatados);
   };
 
   return (
@@ -168,138 +202,154 @@ const PlanilhasFinanceiras: React.FC = () => {
           </Col>
         </Row>
       ) : (
-        dados.map(dadosProjeto => (
-          <Row key={dadosProjeto.projeto} className="mb-4">
-            <Col>
-              <Card className="shadow">
-                <Card.Header>
-                  <h5 className="mb-0">{dadosProjeto.projeto}</h5>
-                </Card.Header>
-                <Card.Body className="p-0">
-                  <div className="table-responsive">
-                    <Table hover className="align-middle mb-0" style={{ fontSize: '0.875rem' }}>
-                      <thead>
-                        <tr>
-                          <th>Item</th>
-                          {meses.map((mes, index) => (
-                            <React.Fragment key={mes}>
-                              <th colSpan={2} className="text-center">
-                                {mes}/{selectedYear.toString().slice(-2)}
-                              </th>
-                            </React.Fragment>
-                          ))}
-                        </tr>
-                        <tr>
-                          <th></th>
-                          {meses.map(mes => (
-                            <React.Fragment key={mes}>
-                              <th className="text-center">Mensal</th>
-                              <th className="text-center">Acumulado</th>
-                            </React.Fragment>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <td>Receita</td>
-                          {meses.map((_, index) => {
-                            const mes = index + 1;
-                            const chave = `${mes}/${selectedYear}`;
-                            const dadosMes = dadosProjeto.dados[chave] || {
-                              mensal: { receita: 0, desoneracao: 0, custo: 0, margem: 0 },
-                              acumulado: { receita: 0, desoneracao: 0, custo: 0, margem: 0 }
-                            };
-                            return (
+        <>
+          {dados.map(dadosProjeto => (
+            <Row key={dadosProjeto.projeto} className="mb-4">
+              <Col>
+                <Card className="shadow">
+                  <Card.Header>
+                    <h5 className="mb-0">{dadosProjeto.projeto}</h5>
+                  </Card.Header>
+                  <Card.Body className="p-0">
+                    <div className="table-responsive">
+                      <Table hover className="align-middle mb-0" style={{ fontSize: '0.875rem' }}>
+                        <thead>
+                          <tr>
+                            <th>Item</th>
+                            {meses.map((mes, index) => (
                               <React.Fragment key={mes}>
-                                <td className="text-center" style={{ color: '#198754' }}>
-                                  {formatCurrency(dadosMes.mensal.receita)}
-                                </td>
-                                <td className="text-center" style={{ color: '#198754' }}>
-                                  {formatCurrency(dadosMes.acumulado.receita)}
-                                </td>
+                                <th colSpan={2} className="text-center">
+                                  {mes}/{selectedYear.toString().slice(-2)}
+                                </th>
                               </React.Fragment>
-                            );
-                          })}
-                        </tr>
-                        <tr>
-                          <td>Desoneração</td>
-                          {meses.map((_, index) => {
-                            const mes = index + 1;
-                            const chave = `${mes}/${selectedYear}`;
-                            const dadosMes = dadosProjeto.dados[chave] || {
-                              mensal: { receita: 0, desoneracao: 0, custo: 0, margem: 0 },
-                              acumulado: { receita: 0, desoneracao: 0, custo: 0, margem: 0 }
-                            };
-                            return (
+                            ))}
+                          </tr>
+                          <tr>
+                            <th></th>
+                            {meses.map(mes => (
                               <React.Fragment key={mes}>
-                                <td className="text-center" style={{ color: '#0dcaf0' }}>
-                                  {formatCurrency(dadosMes.mensal.desoneracao)}
-                                </td>
-                                <td className="text-center" style={{ color: '#0dcaf0' }}>
-                                  {formatCurrency(dadosMes.acumulado.desoneracao)}
-                                </td>
+                                <th className="text-center">Mensal</th>
+                                <th className="text-center">Acumulado</th>
                               </React.Fragment>
-                            );
-                          })}
-                        </tr>
-                        <tr>
-                          <td>Custo</td>
-                          {meses.map((_, index) => {
-                            const mes = index + 1;
-                            const chave = `${mes}/${selectedYear}`;
-                            const dadosMes = dadosProjeto.dados[chave] || {
-                              mensal: { receita: 0, desoneracao: 0, custo: 0, margem: 0 },
-                              acumulado: { receita: 0, desoneracao: 0, custo: 0, margem: 0 }
-                            };
-                            return (
-                              <React.Fragment key={mes}>
-                                <td className="text-center" style={{ color: '#dc3545' }}>
-                                  {formatCurrency(dadosMes.mensal.custo)}
-                                </td>
-                                <td className="text-center" style={{ color: '#dc3545' }}>
-                                  {formatCurrency(dadosMes.acumulado.custo)}
-                                </td>
-                              </React.Fragment>
-                            );
-                          })}
-                        </tr>
-                        <tr>
-                          <td>Margem</td>
-                          {meses.map((_, index) => {
-                            const mes = index + 1;
-                            const chave = `${mes}/${selectedYear}`;
-                            const dadosMes = dadosProjeto.dados[chave] || {
-                              mensal: { receita: 0, desoneracao: 0, custo: 0, margem: 0 },
-                              acumulado: { receita: 0, desoneracao: 0, custo: 0, margem: 0 }
-                            };
-                            const margemMensal = dadosMes.mensal.margem;
-                            const margemAcumulada = dadosMes.acumulado.margem;
-                            return (
-                              <React.Fragment key={mes}>
-                                <td className="text-center" style={{ 
-                                  color: margemMensal >= 7 ? '#28a745' : '#dc3545',
-                                  fontWeight: 'bold'
-                                }}>
-                                  {formatPercent(margemMensal)}
-                                </td>
-                                <td className="text-center" style={{ 
-                                  color: margemAcumulada >= 7 ? '#28a745' : '#dc3545',
-                                  fontWeight: 'bold'
-                                }}>
-                                  {formatPercent(margemAcumulada)}
-                                </td>
-                              </React.Fragment>
-                            );
-                          })}
-                        </tr>
-                      </tbody>
-                    </Table>
-                  </div>
-                </Card.Body>
-              </Card>
-            </Col>
-          </Row>
-        ))
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td>Receita</td>
+                            {meses.map((_, index) => {
+                              const mes = index + 1;
+                              const dadosMes = dadosProjeto.dados[mes] || {
+                                mensal: { receita: 0, desoneracao: 0, custo: 0, margem: 0 },
+                                acumulado: { receita: 0, desoneracao: 0, custo: 0, margem: 0 },
+                              };
+                              return (
+                                <React.Fragment key={mes}>
+                                  <td className="text-center" style={{ color: '#198754' }}>
+                                    <EditableCell
+                                      initialValue={dadosMes.mensal.receita}
+                                      isEditable={mes > lastDataMonth}
+                                      onSave={(novoValor) =>
+                                        handleCellUpdate(dadosProjeto.projeto, mes, 'receita', novoValor)
+                                      }
+                                    />
+                                  </td>
+                                  <td className="text-center" style={{ color: '#198754' }}>
+                                    {formatCurrency(dadosMes.acumulado.receita)}
+                                  </td>
+                                </React.Fragment>
+                              );
+                            })}
+                          </tr>
+                          <tr>
+                            <td>Desoneração</td>
+                            {meses.map((_, index) => {
+                              const mes = index + 1;
+                              const dadosMes = dadosProjeto.dados[mes] || {
+                                mensal: { receita: 0, desoneracao: 0, custo: 0, margem: 0 },
+                                acumulado: { receita: 0, desoneracao: 0, custo: 0, margem: 0 },
+                              };
+                              return (
+                                <React.Fragment key={mes}>
+                                  <td className="text-center" style={{ color: '#0dcaf0' }}>
+                                    <EditableCell
+                                      initialValue={dadosMes.mensal.desoneracao}
+                                      isEditable={mes > lastDataMonth}
+                                      onSave={(novoValor) =>
+                                        handleCellUpdate(dadosProjeto.projeto, mes, 'desoneracao', novoValor)
+                                      }
+                                    />
+                                  </td>
+                                  <td className="text-center" style={{ color: '#0dcaf0' }}>
+                                    {formatCurrency(dadosMes.acumulado.desoneracao)}
+                                  </td>
+                                </React.Fragment>
+                              );
+                            })}
+                          </tr>
+                          <tr>
+                            <td>Custo</td>
+                            {meses.map((_, index) => {
+                              const mes = index + 1;
+                              const dadosMes = dadosProjeto.dados[mes] || {
+                                mensal: { receita: 0, desoneracao: 0, custo: 0, margem: 0 },
+                                acumulado: { receita: 0, desoneracao: 0, custo: 0, margem: 0 },
+                              };
+                              return (
+                                <React.Fragment key={mes}>
+                                  <td className="text-center" style={{ color: '#dc3545' }}>
+                                    <EditableCell
+                                      initialValue={dadosMes.mensal.custo}
+                                      isEditable={mes > lastDataMonth}
+                                      onSave={(novoValor) =>
+                                        handleCellUpdate(dadosProjeto.projeto, mes, 'custo', novoValor)
+                                      }
+                                    />
+                                  </td>
+                                  <td className="text-center" style={{ color: '#dc3545' }}>
+                                    {formatCurrency(dadosMes.acumulado.custo)}
+                                  </td>
+                                </React.Fragment>
+                              );
+                            })}
+                          </tr>
+                          <tr>
+                            <td>Margem</td>
+                            {meses.map((_, index) => {
+                              const mes = index + 1;
+                              const dadosMes = dadosProjeto.dados[mes] || {
+                                mensal: { receita: 0, desoneracao: 0, custo: 0, margem: 0 },
+                                acumulado: { receita: 0, desoneracao: 0, custo: 0, margem: 0 },
+                              };
+                              const margemMensal = dadosMes.mensal.margem;
+                              const margemAcumulada = dadosMes.acumulado.margem;
+                              return (
+                                <React.Fragment key={mes}>
+                                  <td className="text-center" style={{ 
+                                    color: margemMensal >= 7 ? '#28a745' : '#dc3545',
+                                    fontWeight: 'bold'
+                                  }}>
+                                    {formatPercent(margemMensal)}
+                                  </td>
+                                  <td className="text-center" style={{ 
+                                    color: margemAcumulada >= 7 ? '#28a745' : '#dc3545',
+                                    fontWeight: 'bold'
+                                  }}>
+                                    {formatPercent(margemAcumulada)}
+                                  </td>
+                                </React.Fragment>
+                              );
+                            })}
+                          </tr>
+                        </tbody>
+                      </Table>
+                    </div>
+                  </Card.Body>
+                </Card>
+              </Col>
+            </Row>
+          ))}
+        </>
       )}
     </Container>
   );
