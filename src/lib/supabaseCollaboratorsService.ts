@@ -1,9 +1,5 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
-
-// Usar as mesmas configurações do talent-sphere-registry
-const SUPABASE_URL = 'https://pwksgdjjkryqryqrvyja.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB3a3NnZGpqa3J5cXJ5cXJ2eWphIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0ODU2MDA0OCwiZXhwIjoyMDY0MTM2MDQ4fQ.FaNXM6jMHLAa-e6A8PQlZY9wxv9XrweZa4vMCYNhdk4';
-const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+import { SupabaseClient } from '@supabase/supabase-js';
+import { supabase } from '../services/supabaseClient';
 
 const TABLE_NAME = 'colaboradores';
 

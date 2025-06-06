@@ -6,6 +6,7 @@ import { ProjectCharts } from '../components/ProjectCharts'
 import FilterPanel from '../components/FilterPanel'
 import { collaboratorsService } from '../lib/supabaseCollaboratorsService'
 import DREViewer from '../components/dre/DREViewer'
+import { dreSupabaseService } from '../services/dreSupabaseService'
 
 const Dashboard = () => {
   const [allTransactions, setAllTransactions] = useState<Transacao[]>([])
@@ -32,15 +33,17 @@ const Dashboard = () => {
   useEffect(() => {
     const carregarDados = async () => {
       try {
-        const transacoes = await db.transacoes.toArray()
-        setAllTransactions(transacoes)
+        // Buscar dados do Supabase em vez do DexieJS local
+        const transacoes = await dreSupabaseService.getAllRecords()
+        const transacoesTyped = transacoes as Transacao[]
+        setAllTransactions(transacoesTyped)
 
         // Extrair lista única de projetos
-        const uniqueProjects = Array.from(new Set(transacoes.map(t => t.descricao || 'Sem Projeto')))
+        const uniqueProjects = Array.from(new Set(transacoesTyped.map(t => t.descricao || 'Sem Projeto')))
         setProjects(uniqueProjects)
 
         // Extrair lista única de anos
-        const uniqueYears = Array.from(new Set(transacoes.map(t => {
+        const uniqueYears = Array.from(new Set(transacoesTyped.map(t => {
           const [, ano] = (t.periodo || '').split('/')
           return parseInt(ano)
         }))).filter(year => !isNaN(year)).sort((a, b) => b - a) // Ordenar decrescente
