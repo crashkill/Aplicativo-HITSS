@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Container, Row, Col, Card, Form, Button, Alert } from 'react-bootstrap'
 import { useAuth } from '../contexts/AuthContext'
 import { useConfig } from '../contexts/ConfigContext'
+import { MigrationStatus } from '../components/system/MigrationStatus'
 
 const Configuracoes = () => {
   const { user } = useAuth()
@@ -118,6 +119,13 @@ const Configuracoes = () => {
               </Form>
             </Card.Body>
           </Card>
+        </Col>
+      </Row>
+
+      {/* Seção de Migrations */}
+      <Row>
+        <Col>
+          <MigrationStatus />
         </Col>
       </Row>
     </Container>

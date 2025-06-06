@@ -7,7 +7,7 @@ import Upload from './pages/Upload'
 import Config from './pages/Config'
 import Forecast from './pages/Forecast'
 import PlanilhasFinanceiras from './pages/PlanilhasFinanceiras'
-import Documentacao from './pages/Documentacao'
+
 import GestaoProfissionais from './pages/GestaoProfissionais'
 import ConsultaSAP from './pages/ConsultaSAP'
 import Layout from './components/Layout'
@@ -96,14 +96,7 @@ function App() {
             </PrivateRoute>
           }
         />
-        <Route
-          path="/documentacao"
-          element={
-            <PrivateRoute>
-              <Documentacao />
-            </PrivateRoute>
-          }
-        />
+
         <Route
           path="/consulta-sap"
           element={

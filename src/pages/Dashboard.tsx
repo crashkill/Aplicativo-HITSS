@@ -5,6 +5,7 @@ import type { Transacao } from '../db/database'
 import { ProjectCharts } from '../components/ProjectCharts'
 import FilterPanel from '../components/FilterPanel'
 import { collaboratorsService } from '../lib/supabaseCollaboratorsService'
+import DREViewer from '../components/dre/DREViewer'
 
 const Dashboard = () => {
   const [allTransactions, setAllTransactions] = useState<Transacao[]>([])
@@ -284,6 +285,19 @@ const Dashboard = () => {
               </Card.Text>
             </Card.Body>
           </Card>
+        </Col>
+      </Row>
+
+      {/* Seção de Dados DRE do Supabase */}
+      <Row className="mb-4">
+        <Col>
+          <h3 className="mb-3">📊 Dados DRE - Supabase</h3>
+        </Col>
+      </Row>
+
+      <Row className="mb-4">
+        <Col>
+          <DREViewer />
         </Col>
       </Row>
 

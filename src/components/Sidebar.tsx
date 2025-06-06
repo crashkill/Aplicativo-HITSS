@@ -8,7 +8,7 @@ import {
   UilChartGrowth,
   UilCloudUpload,
   UilSetting,
-  UilBook,
+
   UilBars,
   UilAngleRight,
   UilUsersAlt,
@@ -24,7 +24,7 @@ const FileAlt = ({ ...props } = {}) => <UilFileAlt {...props} />
 const ChartGrowth = ({ ...props } = {}) => <UilChartGrowth {...props} />
 const CloudUpload = ({ ...props } = {}) => <UilCloudUpload {...props} />
 const Setting = ({ ...props } = {}) => <UilSetting {...props} />
-const Book = ({ ...props } = {}) => <UilBook {...props} />
+
 const Bars = ({ ...props } = {}) => <UilBars {...props} />
 const AngleRight = ({ ...props } = {}) => <UilAngleRight {...props} />
 const People = ({ ...props } = {}) => <UilUsersAlt {...props} />
@@ -107,12 +107,6 @@ const Sidebar = () => {
       icon: <Database />,
       path: '/consulta-sap',
       color: '#00bcd4'
-    },
-    {
-      text: 'Documentação',
-      icon: <Book />,
-      path: '/documentacao',
-      color: '#607d8b'
     },
     {
       text: 'Configurações',

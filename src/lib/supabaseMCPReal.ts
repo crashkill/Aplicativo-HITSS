@@ -15,7 +15,7 @@ export class SupabaseMCPRealService {
   private mcpEnabled: boolean;
   private isRealMCPAvailable: boolean = false;
 
-  constructor(projectId: string = 'kxippwliqglukdhatuaa') {
+  constructor(projectId: string = 'pwksgdjjkryqryqrvyja') {
     this.projectId = projectId;
     this.mcpEnabled = import.meta.env.VITE_MCP_ENABLED === 'true';
     this.checkRealMCPAvailability();

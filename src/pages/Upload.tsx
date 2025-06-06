@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react'
 import { Container, Row, Col, Card, Alert, Table, Button } from 'react-bootstrap'
 import { useDropzone } from 'react-dropzone'
 import * as XLSX from 'xlsx'
-import { importarDados } from '../db/database'
+import { dreSupabaseService } from '../services/dreSupabaseService'
 import { useNavigate } from 'react-router-dom'
 
 interface FileData {
@@ -101,19 +101,31 @@ const Upload = () => {
     try {
       setIsImporting(true)
       setError('')
-      const result = await importarDados(files[0].data)
-      setSuccess(`${result.count} registros importados com sucesso!`)
+      
+      // Garantir que a tabela existe
+      await dreSupabaseService.createTableIfNotExists()
+      
+      // Importar dados para o Supabase
+      const result = await dreSupabaseService.importExcelData(files[0].data, files[0].name)
+      
+      if (result.success) {
+        setSuccess(`✅ ${result.count} registros importados com sucesso para o Supabase! Batch ID: ${result.batchId}`)
+        
+        // Limpar o formulário após importação bem-sucedida
+        setFiles([])
+        setPreview([])
 
-      // Limpar o formulário após importação bem-sucedida
-      setFiles([])
-      setPreview([])
-
-      // Redirecionar para o dashboard após 2 segundos
-      setTimeout(() => {
-        navigate('/dashboard')
-      }, 2000)
+        // Redirecionar para o dashboard após 3 segundos
+        setTimeout(() => {
+          navigate('/dashboard')
+        }, 3000)
+      } else {
+        setError(`❌ Erro na importação: ${result.errors?.join(', ') || 'Erro desconhecido'}`)
+      }
+      
     } catch (err) {
-      setError('Erro ao importar os dados. Verifique o formato do arquivo.')
+      console.error('Erro ao importar dados:', err)
+      setError(`❌ Erro ao importar os dados: ${err instanceof Error ? err.message : 'Erro desconhecido'}. Verifique o formato do arquivo.`)
     } finally {
       setIsImporting(false)
     }
@@ -123,7 +135,11 @@ const Upload = () => {
     <Container>
       <Row className="mb-4">
         <Col>
-          <h1>Upload de Dados</h1>
+          <h1>📊 Upload de Dados DRE</h1>
+          <p className="text-muted">
+            Importe planilhas Excel (.xlsx, .xls) ou CSV com dados financeiros DRE. 
+            Os dados serão processados e armazenados no Supabase para análise em toda a aplicação.
+          </p>
         </Col>
       </Row>
 
@@ -151,10 +167,17 @@ const Upload = () => {
                 {isDragActive ? (
                   <p>Solte o arquivo aqui ...</p>
                 ) : (
-                  <p>
-                    Arraste e solte um arquivo Excel aqui, ou clique para
-                    selecionar
-                  </p>
+                  <div className="text-center py-4">
+                    <div className="mb-3">
+                      <i className="fas fa-cloud-upload-alt fa-3x text-primary mb-3"></i>
+                    </div>
+                    <h4>📁 Arraste e solte um arquivo aqui</h4>
+                    <p className="text-muted">
+                      ou <strong>clique para selecionar</strong><br/>
+                      Formatos aceitos: .xlsx, .xls, .csv<br/>
+                      <small>Os dados serão enviados diretamente para o Supabase</small>
+                    </p>
+                  </div>
                 )}
               </div>
             </Card.Body>
@@ -166,10 +189,15 @@ const Upload = () => {
         <>
           <Row className="mb-3">
             <Col>
-              <h3>Preview dos Dados</h3>
+              <h3>👀 Preview dos Dados</h3>
               <p className="text-muted">
-                Mostrando as primeiras 5 linhas do arquivo
+                Mostrando as primeiras 5 linhas do arquivo. 
+                <strong>Arquivo:</strong> {files[0].name} ({Math.round(files[0].size / 1024)} KB)
               </p>
+              <div className="alert alert-info">
+                <strong>ℹ️ Informação:</strong> Apenas registros com status "Realizado" serão importados. 
+                A tabela DRE-HITSS será limpa antes da importação de novos dados.
+              </div>
             </Col>
           </Row>
 
@@ -202,10 +230,21 @@ const Upload = () => {
             <Col className="text-center">
               <Button
                 variant="primary"
+                size="lg"
                 onClick={handleImportData}
                 disabled={isImporting}
+                className="px-5"
               >
-                {isImporting ? 'Importando...' : 'Importar Dados'}
+                {isImporting ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                    Importando para Supabase...
+                  </>
+                ) : (
+                  <>
+                    🚀 Importar Dados para Supabase
+                  </>
+                )}
               </Button>
             </Col>
           </Row>

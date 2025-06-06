@@ -1,8 +1,5 @@
-import { exec } from 'child_process';
-import path from 'path';
 import axios from 'axios';
 import { DOMParser } from 'xmldom';
-import * as fs from 'fs';
 
 interface SAPServer {
   name: string;
@@ -37,44 +34,13 @@ export class SAPGuiService {
   }
 
   /**
-   * Lê as configurações do SAP diretamente do arquivo XML
+   * Carrega configurações SAP padrão (sem tentar ler arquivos do sistema)
    */
   private loadSAPGUIConfigFromXML(): void {
     try {
-      // Caminho para o arquivo SAPUILandscape.xml
-      const xmlPath = path.resolve(__dirname, 'SAPUILandscape.xml');
-      
-      // Lê o conteúdo do arquivo
-      const xmlContent = fs.readFileSync(xmlPath, 'utf-8');
-      
-      // Faz o parsing do XML
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(xmlContent, 'text/xml');
-      
-      // Extrai os serviços SAP do XML
-      const serviceNodes = xmlDoc.getElementsByTagName('Service');
-      const servers: SAPServer[] = [];
-      
-      for (let i = 0; i < serviceNodes.length; i++) {
-        const service = serviceNodes[i];
-        if (service.getAttribute('type') === 'SAPGUI') {
-          servers.push({
-            name: service.getAttribute('name') || '',
-            systemId: service.getAttribute('systemid') || '',
-            server: service.getAttribute('server') || '',
-            mode: parseInt(service.getAttribute('mode') || '1')
-          });
-        }
-      }
-      
-      if (servers.length > 0) {
-        this.servers = servers;
-        console.log(`Carregados ${servers.length} servidores SAP do arquivo de configuração`);
-      } else {
-        console.warn('Nenhum servidor SAP encontrado no arquivo de configuração');
-        // Carrega servidores padrão como fallback
-        this.loadDefaultServers();
-      }
+      console.log('Carregando configurações SAP...');
+      // Como estamos no browser, vamos carregar servidores padrão diretamente
+      this.loadDefaultServers();
     } catch (error) {
       console.error('Erro ao carregar configurações do arquivo XML:', error);
       // Carrega servidores padrão como fallback

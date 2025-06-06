@@ -2,6 +2,7 @@ import React, { useRef } from 'react'
 import { Container, Row, Col, Card, Form, Button } from 'react-bootstrap'
 import { useConfig } from '../contexts/ConfigContext'
 import { FaCamera } from 'react-icons/fa'
+import { MigrationStatus } from '../components/system/MigrationStatus'
 
 const Config = () => {
   const { config, updateConfig, uploadUserImage } = useConfig()
@@ -126,6 +127,13 @@ const Config = () => {
               </Form>
             </Card.Body>
           </Card>
+        </Col>
+      </Row>
+
+      {/* Seção de Migrations */}
+      <Row className="mt-4">
+        <Col>
+          <MigrationStatus />
         </Col>
       </Row>
     </Container>
