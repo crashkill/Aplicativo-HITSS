@@ -318,24 +318,28 @@ export class DRESupabaseService {
         .select('*', { count: 'exact', head: true })
         .eq('tipo', 'despesa')
 
-      // Soma de valores
+      // Soma de valores usando query personalizada
       const { data: somaReceitas } = await supabase
         .from(this.tableName)
-        .select('valor.sum()')
+        .select('valor')
         .eq('tipo', 'receita')
 
       const { data: somaDespesas } = await supabase
         .from(this.tableName)
-        .select('valor.sum()')
+        .select('valor')
         .eq('tipo', 'despesa')
+
+      // Calcular soma manualmente
+      const somaReceitasCalculada = somaReceitas?.reduce((sum, item) => sum + (item.valor || 0), 0) || 0
+      const somaDespesasCalculada = somaDespesas?.reduce((sum, item) => sum + (item.valor || 0), 0) || 0
 
       return {
         totalRecords: totalRecords || 0,
         totalReceitas: totalReceitas || 0,
         totalDespesas: totalDespesas || 0,
-        somaReceitas: somaReceitas?.[0]?.sum || 0,
-        somaDespesas: somaDespesas?.[0]?.sum || 0,
-        saldoLiquido: (somaReceitas?.[0]?.sum || 0) - (somaDespesas?.[0]?.sum || 0)
+        somaReceitas: somaReceitasCalculada,
+        somaDespesas: somaDespesasCalculada,
+        saldoLiquido: somaReceitasCalculada - somaDespesasCalculada
       }
     } catch (error) {
       console.error('Erro ao buscar estatísticas:', error)
