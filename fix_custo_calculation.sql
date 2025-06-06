@@ -1,22 +1,14 @@
 -- ============================================
--- EXECUTE ESTE SCRIPT DIRETAMENTE NO SUPABASE
+-- CORREÇÃO DO CÁLCULO DE CUSTO - REGRA ESPECÍFICA
 -- ============================================
--- Acesse: https://supabase.com/dashboard/project/pwksgdjjkryqryqrvyja/sql
--- Cole este código no SQL Editor e execute
+-- Aplicar filtro relatorio = 'Realizado' em todas as functions
 
--- ============================================
--- PRIMEIRO: REMOVER FUNCTIONS EXISTENTES
--- ============================================
+-- REMOVER FUNCTIONS EXISTENTES
 DROP FUNCTION IF EXISTS get_dashboard_summary(integer);
 DROP FUNCTION IF EXISTS get_dashboard_summary_filtered(integer, text[]);
-DROP FUNCTION IF EXISTS get_metadata_projetos();
 DROP FUNCTION IF EXISTS get_estatisticas_gerais();
 
--- ============================================
--- SEGUNDO: RECRIAR COM TIPOS CORRETOS
--- ============================================
-
--- 1. FUNCTION: Dashboard Summary (por ano)
+-- 1. DASHBOARD SUMMARY (CORRIGIDO)
 CREATE OR REPLACE FUNCTION get_dashboard_summary(p_ano INTEGER)
 RETURNS TABLE(
   ano INTEGER,
@@ -37,7 +29,7 @@ BEGIN
       valor
     FROM dre_hitss 
     WHERE EXTRACT(YEAR FROM TO_DATE(periodo, 'MM/YYYY')) = p_ano
-      AND relatorio = 'Realizado'  -- REGRA: Apenas registros Realizados
+      AND relatorio = 'Realizado'  -- REGRA CRÍTICA: Apenas registros Realizados
   ),
   receitas AS (
     SELECT SUM(valor) as total_receita
@@ -68,7 +60,7 @@ BEGIN
 END;
 $$;
 
--- 2. FUNCTION: Dashboard Summary Filtrado (por projetos específicos)
+-- 2. DASHBOARD SUMMARY FILTRADO (CORRIGIDO)
 CREATE OR REPLACE FUNCTION get_dashboard_summary_filtered(p_ano INTEGER, p_projetos TEXT[])
 RETURNS TABLE(
   ano INTEGER,
@@ -90,7 +82,7 @@ BEGIN
     FROM dre_hitss 
     WHERE EXTRACT(YEAR FROM TO_DATE(periodo, 'MM/YYYY')) = p_ano
       AND projeto = ANY(p_projetos)
-      AND relatorio = 'Realizado'
+      AND relatorio = 'Realizado'  -- REGRA CRÍTICA: Apenas registros Realizados
   ),
   receitas AS (
     SELECT SUM(valor) as total_receita
@@ -121,38 +113,7 @@ BEGIN
 END;
 $$;
 
--- 3. FUNCTION: Metadata Projetos
-CREATE OR REPLACE FUNCTION get_metadata_projetos()
-RETURNS TABLE(
-  total_projetos BIGINT,
-  projetos_ativos BIGINT,
-  anos_disponiveis INTEGER[],
-  projetos_lista TEXT[]
-)
-LANGUAGE plpgsql
-AS $$
-BEGIN
-  RETURN QUERY
-  WITH stats AS (
-    SELECT 
-      COUNT(DISTINCT projeto) as total_proj,
-      COUNT(DISTINCT projeto) as ativos_proj,
-      ARRAY_AGG(DISTINCT EXTRACT(YEAR FROM TO_DATE(periodo, 'MM/YYYY'))::INTEGER ORDER BY EXTRACT(YEAR FROM TO_DATE(periodo, 'MM/YYYY'))::INTEGER DESC) as anos,
-      ARRAY_AGG(DISTINCT projeto ORDER BY projeto) as projetos
-    FROM dre_hitss
-    WHERE projeto IS NOT NULL AND projeto != ''
-      AND relatorio = 'Realizado'
-  )
-  SELECT 
-    s.total_proj,
-    s.ativos_proj,
-    s.anos,
-    s.projetos
-  FROM stats s;
-END;
-$$;
-
--- 4. FUNCTION: Estatísticas Gerais
+-- 3. ESTATÍSTICAS GERAIS (CORRIGIDO)
 CREATE OR REPLACE FUNCTION get_estatisticas_gerais()
 RETURNS TABLE(
   total_registros BIGINT,
@@ -174,19 +135,10 @@ BEGIN
     COALESCE(SUM(CASE WHEN natureza = 'CUSTO' THEN ABS(valor) ELSE 0 END), 0),
     COALESCE(SUM(CASE WHEN natureza = 'RECEITA' THEN valor ELSE -ABS(valor) END), 0)
   FROM dre_hitss
-  WHERE relatorio = 'Realizado';
+  WHERE relatorio = 'Realizado';  -- REGRA CRÍTICA: Apenas registros Realizados
 END;
 $$;
 
--- ============================================
--- TESTE AS FUNCTIONS APÓS EXECUTAR:
--- ============================================
-
--- Teste 1: Dashboard 2024
--- SELECT * FROM get_dashboard_summary(2024);
-
--- Teste 2: Metadata
--- SELECT * FROM get_metadata_projetos();
-
--- Teste 3: Estatísticas Gerais
--- SELECT * FROM get_estatisticas_gerais(); 
+-- TESTE AS FUNCTIONS
+SELECT * FROM get_dashboard_summary(2024);
+SELECT * FROM get_estatisticas_gerais(); 

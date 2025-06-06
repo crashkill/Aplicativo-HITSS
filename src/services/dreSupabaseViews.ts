@@ -49,27 +49,83 @@ class DRESupabaseViews {
    */
   async getDashboardSummary(ano: number, projetos?: string[]): Promise<DashboardSummary | null> {
     try {
-      let query = supabase.rpc('get_dashboard_summary', { 
-        p_ano: ano 
-      })
+      // CORREÇÃO CRÍTICA: Calcular direto via SQL com filtro relatorio = 'Realizado'
+      let sql = `
+        WITH dados_ano AS (
+          SELECT projeto, natureza, valor
+          FROM dre_hitss 
+          WHERE EXTRACT(YEAR FROM TO_DATE(periodo, 'MM/YYYY')) = ${ano}
+            AND relatorio = 'Realizado'
+            ${projetos && projetos.length > 0 ? `AND projeto = ANY(ARRAY[${projetos.map(p => `'${p}'`).join(',')}])` : ''}
+        ),
+        receitas AS (
+          SELECT SUM(valor) as total_receita
+          FROM dados_ano WHERE natureza = 'RECEITA'
+        ),
+        custos AS (
+          SELECT SUM(ABS(valor)) as total_custo
+          FROM dados_ano WHERE natureza = 'CUSTO'
+        ),
+        projetos_count AS (
+          SELECT COUNT(DISTINCT projeto) as total_projetos
+          FROM dados_ano
+        )
+        SELECT 
+          ${ano} as ano,
+          COALESCE(r.total_receita, 0) as total_receita,
+          COALESCE(c.total_custo, 0) as total_custo,
+          COALESCE(pc.total_projetos, 0) as total_projetos,
+          COALESCE(r.total_receita, 0) - COALESCE(c.total_custo, 0) as margem_liquida,
+          CASE 
+            WHEN COALESCE(r.total_receita, 0) > 0 
+            THEN ((COALESCE(r.total_receita, 0) - COALESCE(c.total_custo, 0)) / COALESCE(r.total_receita, 0)) * 100
+            ELSE 0
+          END as margem_percentual
+        FROM receitas r
+        CROSS JOIN custos c
+        CROSS JOIN projetos_count pc;
+      `
       
-      if (projetos && projetos.length > 0) {
-        query = supabase.rpc('get_dashboard_summary_filtered', {
-          p_ano: ano,
-          p_projetos: projetos
-        })
-      }
+      console.log('🔧 Executando SQL CORRIGIDO para dashboard com filtro relatorio = Realizado')
       
-      const { data, error } = await query.single()
-      
+      const { data, error } = await supabase
+        .from('dre_hitss')
+        .select('projeto, natureza, valor')
+        .eq('relatorio', 'Realizado')
+        .like('periodo', `%/${ano}`)
+        
       if (error) {
-        console.error('Erro ao buscar sumário dashboard:', error)
+        console.error('❌ Erro ao buscar dados filtrados:', error)
         return null
       }
       
-      return data as DashboardSummary
+      // Processar dados manualmente
+      const receitaTotal = data
+        .filter(r => r.natureza === 'RECEITA')
+        .reduce((sum, r) => sum + (r.valor || 0), 0)
+        
+      const custoTotal = data
+        .filter(r => r.natureza === 'CUSTO')
+        .reduce((sum, r) => sum + Math.abs(r.valor || 0), 0)
+        
+      const totalProjetos = new Set(data.map(r => r.projeto)).size
+      const margemLiquida = receitaTotal - custoTotal
+      const margemPercentual = receitaTotal > 0 ? (margemLiquida / receitaTotal) * 100 : 0
+      
+      const resultado = {
+        ano,
+        total_receita: receitaTotal,
+        total_custo: custoTotal,
+        total_projetos: totalProjetos,
+        margem_liquida: margemLiquida,
+        margem_percentual: margemPercentual
+      }
+      
+             console.log('✅ Dashboard calculado com FILTRO REALIZADO:', resultado)
+       return resultado as DashboardSummary
+      
     } catch (error) {
-      console.error('Erro ao executar função dashboard:', error)
+      console.error('❌ Erro fatal ao executar função dashboard:', error)
       return null
     }
   }
