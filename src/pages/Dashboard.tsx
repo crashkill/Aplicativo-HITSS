@@ -5,6 +5,8 @@ import FilterPanel from '../components/FilterPanel'
 import { collaboratorsService } from '../lib/supabaseCollaboratorsService'
 import DREViewer from '../components/dre/DREViewer'
 import { dreSupabaseViews, DashboardSummary, MetadadosProjeto } from '../services/dreSupabaseViews'
+import { db } from '../db/database'
+import type { Transacao } from '../db/database'
 
 const Dashboard = () => {
   // Estados para dados processados pelo Supabase (regras de negócio centralizadas)
@@ -13,6 +15,10 @@ const Dashboard = () => {
   const [selectedProjects, setSelectedProjects] = useState<string[]>([])
   const [selectedYear, setSelectedYear] = useState<number>(2024)
   const [loading, setLoading] = useState(true)
+
+  // Estados para transações (para o gráfico)
+  const [allTransactions, setAllTransactions] = useState<Transacao[]>([])
+  const [filteredTransactions, setFilteredTransactions] = useState<Transacao[]>([])
 
   // Estados para dados dos colaboradores
   const [collaboratorStats, setCollaboratorStats] = useState({
@@ -85,6 +91,40 @@ const Dashboard = () => {
     loadCollaboratorStats()
   }, [])
 
+  // Carregar todas as transações
+  useEffect(() => {
+    const carregarTransacoes = async () => {
+      try {
+        const transacoes = await db.transacoes.toArray()
+        setAllTransactions(transacoes)
+        console.log('✅ Transações carregadas:', transacoes.length)
+      } catch (error) {
+        console.error('❌ Erro ao carregar transações:', error)
+      }
+    }
+
+    carregarTransacoes()
+  }, [])
+
+  // Filtrar transações quando ano/projetos mudam
+  useEffect(() => {
+    const filtered = allTransactions.filter(transaction => {
+      if (!transaction.periodo) return false
+      
+      const [mes, ano] = transaction.periodo.split('/')
+      const transactionYear = parseInt(ano)
+      
+      const yearMatch = transactionYear === selectedYear
+      const projectMatch = selectedProjects.length === 0 || 
+        selectedProjects.some(proj => transaction.descricao?.includes(proj))
+      
+      return yearMatch && projectMatch
+    })
+    
+    setFilteredTransactions(filtered)
+    console.log(`✅ Transações filtradas: ${filtered.length} para ano ${selectedYear}`)
+  }, [selectedProjects, selectedYear, allTransactions])
+
   // Valores para exibição (dados processados pelo Supabase)
   const receita = dashboardData?.total_receita || 0
   const custo = dashboardData?.total_custo || 0
@@ -132,32 +172,6 @@ const Dashboard = () => {
                   style: 'currency',
                   currency: 'BRL'
                 }).format(custo)}
-              </Card.Text>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-
-      <Row>
-        <Col md={6} className="mb-4">
-          <Card className="h-100 bg-card text-card-foreground border border-border">
-            <Card.Body>
-              <Card.Title>Margem Líquida</Card.Title>
-              <Card.Text className={`h2 ${margem >= 0 ? 'text-success dark:text-green-400' : 'text-danger dark:text-red-400'}`}>
-                {new Intl.NumberFormat('pt-BR', {
-                  style: 'currency',
-                  currency: 'BRL'
-                }).format(margem)}
-              </Card.Text>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={6} className="mb-4">
-          <Card className="h-100 bg-card text-card-foreground border border-border">
-            <Card.Body>
-              <Card.Title>Total de Projetos</Card.Title>
-              <Card.Text className="h2 text-primary dark:text-blue-400">
-                {totalProjetos}
               </Card.Text>
             </Card.Body>
           </Card>
@@ -248,42 +262,12 @@ const Dashboard = () => {
       </Row>
 
       <Row>
-        <Col lg={6} className="mb-4">
-          <Card className="h-100 bg-card text-card-foreground border border-border">
-            <Card.Header>
-              <Card.Title>Performance Financeira</Card.Title>
-            </Card.Header>
+        <Col className="mb-4">
+          <Card className="shadow bg-card text-card-foreground border border-border">
             <Card.Body>
-              <div className="mb-3">
-                <div className="d-flex justify-content-between">
-                  <span>Margem %:</span>
-                  <span className={dashboardData?.margem_percentual && dashboardData.margem_percentual >= 0 ? 'text-success' : 'text-danger'}>
-                    {dashboardData?.margem_percentual?.toFixed(1) || '0.0'}%
-                  </span>
-                </div>
-              </div>
-              <div className="mb-3">
-                <div className="d-flex justify-content-between">
-                  <span>Ano Selecionado:</span>
-                  <span className="text-primary">{selectedYear}</span>
-                </div>
-              </div>
-              <div className="mb-3">
-                <div className="d-flex justify-content-between">
-                  <span>Projetos Filtrados:</span>
-                  <span className="text-info">
-                    {selectedProjects.length === 0 ? 'Todos' : selectedProjects.length}
-                  </span>
-                </div>
-              </div>
+              <ProjectCharts transactions={filteredTransactions} />
             </Card.Body>
           </Card>
-        </Col>
-      </Row>
-
-      <Row>
-        <Col className="mb-4">
-          <ProjectCharts transactions={[]} />
         </Col>
       </Row>
     </Container>
