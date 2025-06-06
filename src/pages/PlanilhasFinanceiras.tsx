@@ -147,27 +147,47 @@ const PlanilhasFinanceiras: React.FC = () => {
     Object.values(dadosFormatados).forEach(proj => {
       let acumulado = { receita: 0, custo: 0, desoneracao: 0, margem: 0 };
       for (let i = 1; i <= 12; i++) {
+        // Primeiro, garante que o mês existe (mesmo que vazio)
         if (!proj.dados[i]) {
           proj.dados[i] = {
             mensal: { receita: 0, custo: 0, desoneracao: 0, margem: 0 },
-            acumulado: { ...acumulado } // Mantém o acumulado do mês anterior
+            acumulado: { receita: 0, custo: 0, desoneracao: 0, margem: 0 }
           };
-        } else {
-          const mensal = proj.dados[i].mensal;
-          mensal.margem = (mensal.receita + mensal.desoneracao) - mensal.custo;
-          
-          acumulado.receita += mensal.receita;
-          acumulado.custo += mensal.custo;
-          acumulado.desoneracao += mensal.desoneracao;
-          acumulado.margem = (acumulado.receita + acumulado.desoneracao) - acumulado.custo;
-          
-          proj.dados[i].acumulado = { ...acumulado };
         }
+
+        // Lógica de Propagação do app-financeiro: Se a receita for zero E não for janeiro
+        if (proj.dados[i].mensal.receita === 0 && i > 1) {
+          // Buscar último mês com dados
+          for (let mesAnterior = i - 1; mesAnterior >= 1; mesAnterior--) {
+            const dadosMesAnterior = proj.dados[mesAnterior]?.mensal;
+            if (dadosMesAnterior && dadosMesAnterior.receita > 0) {
+              proj.dados[i].mensal.receita = dadosMesAnterior.receita;
+              proj.dados[i].mensal.desoneracao = dadosMesAnterior.desoneracao;
+              proj.dados[i].mensal.custo = dadosMesAnterior.custo;
+              break;
+            }
+          }
+        }
+
+        const mensal = proj.dados[i].mensal;
+        const custoAjustadoMensal = Math.abs(mensal.custo) - mensal.desoneracao;
+        mensal.margem = mensal.receita > 0 ? (1 - (custoAjustadoMensal / mensal.receita)) * 100 : 0;
+        
+        acumulado.receita += mensal.receita;
+        acumulado.custo += mensal.custo;
+        acumulado.desoneracao += mensal.desoneracao;
+        
+        const custoAjustadoAcumulado = Math.abs(acumulado.custo) - acumulado.desoneracao;
+        acumulado.margem = acumulado.receita > 0 ? (1 - (custoAjustadoAcumulado / acumulado.receita)) * 100 : 0;
+        
+        proj.dados[i].acumulado = { ...acumulado };
       }
     });
   
     return Object.values(dadosFormatados);
   };
+
+
 
   return (
     <Container fluid>
@@ -322,26 +342,23 @@ const PlanilhasFinanceiras: React.FC = () => {
                                 acumulado: { receita: 0, desoneracao: 0, custo: 0, margem: 0 },
                               };
 
-                              // Lógica de cálculo do app-financeiro
-                              const custoAjustadoMensal = Math.abs(dadosMes.mensal.custo) - dadosMes.mensal.desoneracao;
-                              const margemMensal = dadosMes.mensal.receita > 0 ? (1 - (custoAjustadoMensal / dadosMes.mensal.receita)) : 0;
-                              
-                              const custoAjustadoAcumulado = Math.abs(dadosMes.acumulado.custo) - dadosMes.acumulado.desoneracao;
-                              const margemAcumulada = dadosMes.acumulado.receita > 0 ? (1 - (custoAjustadoAcumulado / dadosMes.acumulado.receita)) : 0;
+                              // A margem já vem calculada em percentual dos dados processados
+                              const margemPercentualMensal = dadosMes.mensal.margem; // Não dividir por 100, formatPercent já faz isso
+                              const margemPercentualAcumulada = dadosMes.acumulado.margem; // Não dividir por 100, formatPercent já faz isso
 
                               return (
                                 <React.Fragment key={mes}>
                                   <td className="text-center" style={{ 
-                                    color: margemMensal >= 0.07 ? '#28a745' : '#dc3545',
+                                    color: margemPercentualMensal >= 7 ? '#28a745' : '#dc3545',
                                     fontWeight: 'bold'
                                   }}>
-                                    {formatPercent(margemMensal)}
+                                    {formatPercent(margemPercentualMensal)}
                                   </td>
                                   <td className="text-center" style={{ 
-                                    color: margemAcumulada >= 0.07 ? '#28a745' : '#dc3545',
+                                    color: margemPercentualAcumulada >= 7 ? '#28a745' : '#dc3545',
                                     fontWeight: 'bold'
                                   }}>
-                                    {formatPercent(margemAcumulada)}
+                                    {formatPercent(margemPercentualAcumulada)}
                                   </td>
                                 </React.Fragment>
                               );
