@@ -4,6 +4,7 @@ import { formatCurrency, formatPercent } from '../utils/formatters';
 import { db } from '../db/database';
 import type { Transacao } from '../db/database';
 import FilterPanel from '../components/FilterPanel';
+import { dreSupabaseViews, MetadadosProjeto } from '../services/dreSupabaseViews';
 
 interface DadosMes {
   receita: number;
@@ -20,195 +21,119 @@ interface DadosProjeto {
 const PlanilhasFinanceiras: React.FC = () => {
   const [dados, setDados] = useState<DadosProjeto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [projects, setProjects] = useState<string[]>([]);
+  const [metadata, setMetadata] = useState<MetadadosProjeto | null>(null);
   const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
-  const [years, setYears] = useState<number[]>([]);
-  const [selectedYear, setSelectedYear] = useState<number>(2024);
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [meses] = useState(['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']);
 
-  // Carregar projetos e anos disponíveis
+  // Carregar metadados (projetos e anos disponíveis) do Supabase
   useEffect(() => {
-    const carregarDados = async () => {
+    const carregarMetadados = async () => {
       try {
-        const transacoes = await db.transacoes.toArray();
-        
-        // Extrair projetos únicos
-        const uniqueProjects = Array.from(new Set(transacoes.map(t => t.projeto || t.descricao || 'Sem Projeto')));
-        setProjects(uniqueProjects);
-
-        // Extrair anos únicos
-        const uniqueYears = Array.from(new Set(transacoes.map(t => {
-          const [, ano] = (t.periodo || '').split('/');
-          return parseInt(ano);
-        }))).filter(year => !isNaN(year)).sort((a, b) => b - a);
-
-        setYears(uniqueYears);
-        if (uniqueYears.length > 0) {
-          setSelectedYear(uniqueYears[0]);
+        const metadados = await dreSupabaseViews.getMetadados();
+        setMetadata(metadados);
+        if (metadados?.anos_disponiveis?.length > 0) {
+          setSelectedYear(metadados.anos_disponiveis[0]);
         }
       } catch (error) {
-        console.error('Erro ao carregar dados:', error);
+        console.error('Erro ao carregar metadados:', error);
       }
     };
 
-    carregarDados();
+    carregarMetadados();
   }, []);
 
-  // Função para validar receita
-  const isReceitaValida = (contaResumo: string) => {
-    const normalizado = contaResumo.toLowerCase().trim();
-    return normalizado.includes('receita devengada');
-  };
-
-  // Função para validar tipos de custo
-  const isCustoValido = (contaResumo: string): boolean => {
-    const custoNormalizado = contaResumo.toUpperCase().trim();
-    return ['CLT', 'OUTROS', 'SUBCONTRATADOS'].includes(custoNormalizado);
-  };
-
-  // Função para processar transações do mês
-  const processarTransacoesMes = (transacoes: Transacao[]): DadosMes => {
-    const dadosMes: DadosMes = {
-      receita: 0,
-      desoneracao: 0,
-      custo: 0,
-      margem: 0
-    };
-
-    transacoes.forEach(transacao => {
-      const valor = Number(transacao.valor) || 0;
-      const contaResumo = (transacao.contaResumo || '').trim();
-
-      // Processamento de Receita
-      if (contaResumo.toUpperCase() === 'RECEITA DEVENGADA') {
-        // Receita deve ser positiva
-        dadosMes.receita += valor;
-      }
-      // Processamento de Desoneração
-      else if (contaResumo.toUpperCase() === 'DESONERAÇÃO DA FOLHA') {
-        // Desoneração deve ser positiva
-        dadosMes.desoneracao += valor;
-      } 
-      // Processamento de Custos
-      else if (isCustoValido(contaResumo)) {
-        // Custos devem ser mantidos como estão no banco
-        dadosMes.custo += valor;
-        console.log(`Processando custo para ${contaResumo}:`, {
-          valorOriginal: valor,
-          custoAcumulado: dadosMes.custo
-        });
-      }
-    });
-
-    // Log para debug
-    console.log('Dados processados do mês:', {
-      receita: dadosMes.receita,
-      desoneracao: dadosMes.desoneracao,
-      custo: dadosMes.custo,
-      custoAbsoluto: Math.abs(dadosMes.custo)
-    });
-
-    // Cálculo da margem usando o valor absoluto do custo
-    const custoAjustado = Math.abs(dadosMes.custo) - dadosMes.desoneracao;
-    dadosMes.margem = dadosMes.receita > 0 ? (1 - (custoAjustado / dadosMes.receita)) * 100 : 0;
-
-    return dadosMes;
-  };
-
-  // Carregar dados financeiros
+  // Carregar e processar dados financeiros do Supabase
   useEffect(() => {
     const carregarDadosFinanceiros = async () => {
-      if (!selectedYear) return;
-      
+      if (!selectedYear || !metadata) return;
+
       setIsLoading(true);
       try {
-        const projetosParaCarregar = selectedProjects.length > 0 ? selectedProjects : projects;
-        const dadosProjetos: DadosProjeto[] = [];
+        const projetosParaBuscar = selectedProjects.length > 0 ? selectedProjects : metadata.projetos_lista;
+        
+        console.log('Buscando dados da planilha para:', { selectedYear, projetos: projetosParaBuscar });
+        const dadosCrus = await dreSupabaseViews.getPlanilhas(selectedYear, projetosParaBuscar);
+        
+        const dadosProcessados = processarDadosDaPlanilha(dadosCrus, projetosParaBuscar);
+        setDados(dadosProcessados);
 
-        // Buscar todas as transações do ano
-        const transacoes = await db.transacoes.toArray();
-
-        // Processar transações por projeto
-        for (const projeto of projetosParaCarregar) {
-          const transacoesProjeto = transacoes.filter(t => 
-            (t.projeto || t.descricao || 'Sem Projeto') === projeto
-          );
-
-          const dadosProjeto: DadosProjeto = {
-            projeto,
-            dados: {}
-          };
-
-          // Processar dados mensais e acumulados
-          let acumulado: DadosMes = {
-            receita: 0,
-            desoneracao: 0,
-            custo: 0,
-            margem: 0
-          };
-
-          // Processar cada mês
-          for (let mes = 1; mes <= 12; mes++) {
-            // Filtrar transações do mês atual
-            const transacoesMes = transacoesProjeto.filter(t => {
-              const [mesTransacao, anoTransacao] = (t.periodo || '').split('/');
-              return parseInt(mesTransacao) === mes && parseInt(anoTransacao) === selectedYear;
-            });
-
-            // Processar dados do mês
-            const dadosMes = processarTransacoesMes(transacoesMes);
-
-            // Se não houver dados para o mês, verificar se há dados em meses anteriores
-            if (dadosMes.receita === 0 && mes > 1) {
-              // Buscar último mês com dados
-              for (let mesAnterior = mes - 1; mesAnterior >= 1; mesAnterior--) {
-                const dadosMesAnterior = dadosProjeto.dados[`${mesAnterior}/${selectedYear}`]?.mensal;
-                if (dadosMesAnterior && dadosMesAnterior.receita > 0) {
-                  // Usar os mesmos valores do último mês com dados
-                  dadosMes.receita = dadosMesAnterior.receita;
-                  dadosMes.desoneracao = dadosMesAnterior.desoneracao;
-                  dadosMes.custo = dadosMesAnterior.custo;
-                  break;
-                }
-              }
-            }
-            
-            // Acumular valores
-            acumulado.receita += dadosMes.receita;
-            acumulado.desoneracao += dadosMes.desoneracao;
-            acumulado.custo += dadosMes.custo;
-
-            // Recalcular margem acumulada
-            const custoAjustadoAcumulado = Math.abs(acumulado.custo) - acumulado.desoneracao;
-            acumulado.margem = acumulado.receita > 0 
-              ? (1 - (custoAjustadoAcumulado / acumulado.receita)) * 100 
-              : 0;
-
-            // Recalcular margem mensal
-            const custoAjustado = Math.abs(dadosMes.custo) - dadosMes.desoneracao;
-            dadosMes.margem = dadosMes.receita > 0 
-              ? (1 - (custoAjustado / dadosMes.receita)) * 100 
-              : 0;
-
-            dadosProjeto.dados[`${mes}/${selectedYear}`] = {
-              mensal: { ...dadosMes },
-              acumulado: { ...acumulado }
-            };
-          }
-
-          dadosProjetos.push(dadosProjeto);
-        }
-
-        setDados(dadosProjetos);
       } catch (error) {
         console.error('Erro ao carregar dados financeiros:', error);
+        setDados([]); // Limpa os dados em caso de erro
       } finally {
         setIsLoading(false);
       }
     };
 
     carregarDadosFinanceiros();
-  }, [selectedYear, selectedProjects, projects]);
+  }, [selectedYear, selectedProjects, metadata]);
+
+  // Função para transformar dados da API para o formato do componente
+  const processarDadosDaPlanilha = (dadosCrus: any[], projetos: string[]): DadosProjeto[] => {
+    const dadosAgrupados: { [key: string]: any } = {};
+
+    // Inicializa a estrutura para todos os projetos selecionados
+    projetos.forEach(p => {
+      dadosAgrupados[p] = {};
+      meses.forEach((_, index) => {
+        const mesNum = index + 1;
+        dadosAgrupados[p][`${mesNum}/${selectedYear}`] = {
+          mensal: { receita: 0, desoneracao: 0, custo: 0, margem: 0 },
+          acumulado: { receita: 0, desoneracao: 0, custo: 0, margem: 0 }
+        };
+      });
+    });
+
+    // Preenche com os dados da API
+    dadosCrus.forEach(item => {
+      if (dadosAgrupados[item.projeto]) {
+        dadosAgrupados[item.projeto][`${item.mes}/${selectedYear}`].mensal = {
+          receita: Number(item.receita),
+          desoneracao: Number(item.desoneracao),
+          custo: Number(item.custo), // Custo já vem como negativo ou zero
+          margem: 0, // Será calculado depois
+        };
+      }
+    });
+
+    // Calcula acumulados e margens
+    return projetos.map(p => {
+      let acumulado: DadosMes = { receita: 0, desoneracao: 0, custo: 0, margem: 0 };
+      
+      meses.forEach((_, index) => {
+        const mesNum = index + 1;
+        const chave = `${mesNum}/${selectedYear}`;
+        const dadosMes = dadosAgrupados[p][chave].mensal;
+
+        // Propagação de dados do último mês preenchido
+        if (dadosMes.receita === 0 && dadosMes.custo === 0 && mesNum > 1) {
+            const ultimoMesComDados = dadosAgrupados[p][`${mesNum - 1}/${selectedYear}`]?.mensal;
+            if (ultimoMesComDados) {
+                dadosMes.receita = ultimoMesComDados.receita;
+                dadosMes.custo = ultimoMesComDados.custo;
+                dadosMes.desoneracao = ultimoMesComDados.desoneracao;
+            }
+        }
+        
+        acumulado.receita += dadosMes.receita;
+        acumulado.custo += dadosMes.custo;
+        acumulado.desoneracao += dadosMes.desoneracao;
+
+        // Recalcula margem mensal
+        const custoAjustadoMensal = Math.abs(dadosMes.custo) - dadosMes.desoneracao;
+        dadosMes.margem = dadosMes.receita > 0 ? (1 - (custoAjustadoMensal / dadosMes.receita)) * 100 : 0;
+
+        // Recalcula margem acumulada
+        const custoAjustadoAcumulado = Math.abs(acumulado.custo) - acumulado.desoneracao;
+        acumulado.margem = acumulado.receita > 0 ? (1 - (custoAjustadoAcumulado / acumulado.receita)) * 100 : 0;
+
+        dadosAgrupados[p][chave].acumulado = { ...acumulado };
+      });
+      
+      return { projeto: p, dados: dadosAgrupados[p] };
+    });
+  };
 
   return (
     <Container fluid>
@@ -222,9 +147,9 @@ const PlanilhasFinanceiras: React.FC = () => {
       <Row>
         <Col>
           <FilterPanel
-            projects={projects}
+            projects={metadata?.projetos_lista || []}
             selectedProjects={selectedProjects}
-            years={years}
+            years={metadata?.anos_disponiveis || []}
             selectedYear={selectedYear}
             onProjectChange={setSelectedProjects}
             onYearChange={setSelectedYear}

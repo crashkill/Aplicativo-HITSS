@@ -208,3 +208,57 @@ $$;
 
 -- Teste 3: Estatísticas Gerais
 -- SELECT * FROM get_estatisticas_gerais(); 
+
+-- ============================================
+-- QUINTO: FUNÇÃO PARA A PLANILHA FINANCEIRA
+-- ============================================
+CREATE OR REPLACE FUNCTION get_financial_spreadsheet(p_ano INTEGER, p_projetos TEXT[])
+RETURNS TABLE(
+  projeto TEXT,
+  mes INTEGER,
+  receita DECIMAL,
+  desoneracao DECIMAL,
+  custo DECIMAL
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN QUERY
+  WITH transacoes_filtradas AS (
+    SELECT
+      t.projeto,
+      EXTRACT(MONTH FROM TO_DATE(t.periodo, 'MM/YYYY'))::INTEGER as mes,
+      t.conta_resumo,
+      t.valor
+    FROM dre_hitss t
+    WHERE EXTRACT(YEAR FROM TO_DATE(t.periodo, 'MM/YYYY')) = p_ano
+      AND (
+        p_projetos IS NULL -- Se a lista for nula, retorna todos
+        OR
+        t.projeto = ANY(p_projetos) -- Senão, filtra pelos projetos
+      )
+  )
+  SELECT
+    tf.projeto,
+    tf.mes,
+    -- Receita: Soma de 'RECEITA DEVENGADA'
+    COALESCE(SUM(CASE WHEN tf.conta_resumo = 'RECEITA DEVENGADA' THEN tf.valor ELSE 0 END), 0) as receita,
+    -- Desoneração: Soma de 'DESONERAÇÃO DA FOLHA'
+    COALESCE(SUM(CASE WHEN tf.conta_resumo = 'DESONERAÇÃO DA FOLHA' THEN tf.valor ELSE 0 END), 0) as desoneracao,
+    -- Custo: Soma de CLT, SUBCONTRATADOS, OUTROS
+    COALESCE(SUM(CASE 
+      WHEN tf.conta_resumo ILIKE ANY(ARRAY['%CLT%', '%SUBCONTRATADOS%', '%OUTROS%'])
+      THEN tf.valor 
+      ELSE 0 
+    END), 0) as custo
+  FROM transacoes_filtradas tf
+  GROUP BY tf.projeto, tf.mes
+  ORDER BY tf.projeto, tf.mes;
+END;
+$$;
+
+-- Teste 5: Planilha Financeira para projetos específicos em 2024
+-- SELECT * FROM get_financial_spreadsheet(2024, ARRAY['NOME_DO_PROJETO_1', 'NOME_DO_PROJETO_2']);
+
+-- Teste 6: Planilha Financeira para todos os projetos em 2024
+-- SELECT * FROM get_financial_spreadsheet(2024, NULL); 

@@ -220,6 +220,28 @@ class DRESupabaseViews {
       return null
     }
   }
+
+  /**
+   * Busca os dados agregados para a planilha financeira.
+   * @param ano - O ano para filtrar os dados.
+   * @param projetos - Uma lista opcional de projetos para filtrar. Se vazia, busca todos.
+   * @returns Uma lista de registros da planilha, agregados por projeto e mês.
+   */
+  async getPlanilhas(ano: number, projetos: string[]): Promise<any[]> { // A tipagem será mais específica no componente
+    const { data, error } = await supabase.rpc('get_financial_spreadsheet', {
+      p_ano: ano,
+      // Se a lista de projetos estiver vazia, passamos NULL para a função SQL buscar todos
+      p_projetos: projetos.length > 0 ? projetos : null,
+    });
+
+    if (error) {
+      console.error('Erro ao chamar get_financial_spreadsheet:', error);
+      throw error;
+    }
+
+    console.log('Dados recebidos da planilha financeira:', data);
+    return data || [];
+  }
 }
 
 export const dreSupabaseViews = new DRESupabaseViews() 

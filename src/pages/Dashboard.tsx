@@ -14,7 +14,7 @@ const Dashboard = () => {
   const [dashboardData, setDashboardData] = useState<DashboardSummary | null>(null)
   const [metadata, setMetadata] = useState<MetadadosProjeto | null>(null)
   const [selectedProjects, setSelectedProjects] = useState<string[]>([])
-  const [selectedYear, setSelectedYear] = useState<number>(2024)
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear())
   const [loading, setLoading] = useState(true)
 
   // Estados para transações (para o gráfico)
@@ -37,6 +37,13 @@ const Dashboard = () => {
         console.log('🔄 Carregando metadados do Supabase...')
         const metadados = await dreSupabaseViews.getMetadados()
         setMetadata(metadados)
+
+        // IMPORTANTE: Define o ano mais recente como padrão
+        if (metadados && metadados.anos_disponiveis && metadados.anos_disponiveis.length > 0) {
+          setSelectedYear(metadados.anos_disponiveis[0])
+          console.log(`✅ Ano padrão definido para ${metadados.anos_disponiveis[0]}`)
+        }
+
         console.log('✅ Metadados carregados:', metadados)
       } catch (error) {
         console.error('❌ Erro ao carregar metadados:', error)
