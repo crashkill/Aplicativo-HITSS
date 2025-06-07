@@ -1,0 +1,284 @@
+/* Simple Data Grid Styles - Modern and Clean */
+.simple-data-grid-container {
+  margin-bottom: 2rem;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+.simple-data-grid-container:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+.simple-data-grid-header {
+  background: linear-gradient(135deg, #6c5ce7 0%, #74b9ff 100%);
+  padding: 16px 20px;
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.simple-data-grid-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+.simple-project-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.simple-data-grid-wrapper {
+  padding: 0;
+  background: white;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.simple-data-grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 0.875rem;
+}
+
+/* Header Styles */
+.simple-item-header,
+.simple-month-header,
+.simple-sub-header {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  color: #495057;
+  font-weight: 600;
+  padding: 12px 8px;
+  text-align: center;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  position: relative;
+}
+
+.simple-month-header {
+  background: linear-gradient(135deg, #6c5ce7 0%, #74b9ff 100%);
+  color: white;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.simple-item-header {
+  background: linear-gradient(135deg, rgba(108, 92, 231, 0.1) 0%, rgba(116, 185, 255, 0.1) 100%);
+  border-right: 2px solid #6c5ce7;
+  font-weight: 700;
+  min-width: 120px;
+}
+
+/* Cell Styles */
+.simple-cell {
+  padding: 12px 8px;
+  text-align: center;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+  position: relative;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.simple-cell.editable {
+  cursor: pointer;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(248, 249, 250, 0.8) 100%);
+}
+
+.simple-cell.editable:hover {
+  background: linear-gradient(135deg, rgba(108, 92, 231, 0.1) 0%, rgba(116, 185, 255, 0.1) 100%);
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(108, 92, 231, 0.15);
+}
+
+.simple-cell.readonly {
+  background: rgba(248, 249, 250, 0.5);
+  color: #6c757d;
+}
+
+.simple-item-cell {
+  background: linear-gradient(135deg, rgba(108, 92, 231, 0.05) 0%, rgba(116, 185, 255, 0.05) 100%);
+  font-weight: 600;
+  color: #495057;
+  border-right: 2px solid rgba(108, 92, 231, 0.2);
+  text-align: left;
+  padding-left: 16px;
+}
+
+/* Input Styles - Remove Spinner Arrows */
+.simple-input {
+  width: 100%;
+  height: 100%;
+  border: none;
+  outline: none;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  padding: 8px 12px;
+  font-size: 0.875rem;
+  text-align: center;
+  color: #495057;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  font-weight: 500;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+/* Remove spinner arrows - WebKit (Chrome, Safari, Edge) */
+.simple-input::-webkit-outer-spin-button,
+.simple-input::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0 !important;
+}
+
+/* Remove spinner arrows - Firefox */
+.simple-input[type=number] {
+  -moz-appearance: textfield !important;
+}
+
+.simple-input:focus {
+  box-shadow: 0 4px 16px rgba(108, 92, 231, 0.3);
+  background: white;
+  transform: scale(1.05);
+}
+
+/* Row Styles */
+.simple-data-grid tbody tr {
+  transition: all 0.2s ease;
+}
+
+.simple-data-grid tbody tr:nth-child(even) {
+  background: rgba(248, 249, 250, 0.3);
+}
+
+.simple-data-grid tbody tr:hover {
+  background: linear-gradient(135deg, rgba(108, 92, 231, 0.03) 0%, rgba(116, 185, 255, 0.03) 100%);
+  transform: translateX(2px);
+}
+
+/* Modern scrollbar */
+.simple-data-grid-wrapper::-webkit-scrollbar {
+  height: 8px;
+}
+
+.simple-data-grid-wrapper::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+.simple-data-grid-wrapper::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #6c5ce7 0%, #74b9ff 100%);
+  border-radius: 4px;
+}
+
+.simple-data-grid-wrapper::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #5a4fcf 0%, #5a9ded 100%);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .simple-data-grid-container {
+    margin: 0 -15px 1rem -15px;
+    border-radius: 0;
+  }
+  
+  .simple-data-grid-header {
+    padding: 12px 16px;
+  }
+  
+  .simple-project-title {
+    font-size: 1.1rem;
+  }
+  
+  .simple-cell,
+  .simple-item-header,
+  .simple-month-header,
+  .simple-sub-header {
+    padding: 8px 6px;
+    font-size: 0.8rem;
+  }
+  
+  .simple-input {
+    font-size: 0.8rem;
+    padding: 6px 8px;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .simple-data-grid-container {
+    box-shadow: none;
+    border: 1px solid #dee2e6;
+    break-inside: avoid;
+  }
+  
+  .simple-data-grid tbody tr:hover {
+    background: transparent;
+    transform: none;
+  }
+  
+  .simple-data-grid-container:hover {
+    transform: none;
+    box-shadow: none;
+  }
+}
+
+/* Loading Animation */
+.simple-data-grid-container.loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.simple-data-grid-container.loading::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* Accessibility */
+.simple-cell:focus-within {
+  outline: 2px solid #6c5ce7;
+  outline-offset: 2px;
+}
+
+.simple-input:focus {
+  outline: none;
+}
+
+/* Animation for value changes */
+@keyframes valueChange {
+  0% { background: rgba(108, 92, 231, 0.3); }
+  100% { background: transparent; }
+}
+
+.simple-cell.value-changed {
+  animation: valueChange 0.6s ease-out;
+} 

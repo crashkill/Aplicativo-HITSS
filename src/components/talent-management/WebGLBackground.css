@@ -1,0 +1,260 @@
+/* CSS Background Animation - Modern and Performant */
+.css-background-container {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.css-background-container canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.css-background-container > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* Particles animation fallback */
+.css-background-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 1px, transparent 1px),
+    radial-gradient(circle at 80% 50%, rgba(255,255,255,0.1) 1px, transparent 1px),
+    radial-gradient(circle at 40% 20%, rgba(255,255,255,0.1) 1px, transparent 1px),
+    radial-gradient(circle at 60% 80%, rgba(255,255,255,0.1) 1px, transparent 1px);
+  background-size: 200px 200px, 300px 300px, 250px 250px, 180px 180px;
+  animation: float 20s ease-in-out infinite;
+  z-index: 1;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+/* Animated Particles */
+.particles-container {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.particle {
+  position: absolute;
+  width: var(--size);
+  height: var(--size);
+  background: radial-gradient(circle, rgba(106, 90, 205, 0.8) 0%, rgba(106, 90, 205, 0.3) 50%, transparent 100%);
+  border-radius: 50%;
+  left: var(--x);
+  top: var(--y);
+  animation: 
+    float var(--duration) linear infinite,
+    twinkle 3s ease-in-out infinite alternate;
+  animation-delay: var(--delay);
+  will-change: transform, opacity;
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(100vh) translateX(0px) scale(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100vh) translateX(200px) scale(1);
+    opacity: 0;
+  }
+}
+
+@keyframes twinkle {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+/* Floating Geometric Shapes */
+.shapes-container {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.floating-shape {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  animation: 
+    floatShape 20s ease-in-out infinite,
+    rotateShape 15s linear infinite;
+  animation-delay: var(--delay);
+  will-change: transform;
+}
+
+.shape-0 {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  border-radius: 8px;
+  opacity: 0.4;
+}
+
+.shape-1 {
+  width: 30px;
+  height: 30px;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  border-radius: 50%;
+  opacity: 0.3;
+}
+
+.shape-2 {
+  width: 35px;
+  height: 35px;
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  border-radius: 50%;
+  position: relative;
+  opacity: 0.35;
+}
+
+.shape-2::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 15px;
+  height: 15px;
+  background: transparent;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: inset 0 0 0 8px currentColor;
+}
+
+@keyframes floatShape {
+  0%, 100% {
+    transform: translateY(0px) translateX(0px);
+  }
+  25% {
+    transform: translateY(-30px) translateX(20px);
+  }
+  50% {
+    transform: translateY(-15px) translateX(-15px);
+  }
+  75% {
+    transform: translateY(-25px) translateX(10px);
+  }
+}
+
+@keyframes rotateShape {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Gradient Overlay */
+.gradient-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+    linear-gradient(135deg, 
+      rgba(15, 15, 35, 0.8) 0%, 
+      rgba(26, 26, 46, 0.6) 50%, 
+      rgba(22, 33, 62, 0.8) 100%
+    );
+  pointer-events: none;
+}
+
+/* Performance optimizations */
+.css-background-container * {
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .particle {
+    --size: 3px !important;
+  }
+  
+  .floating-shape {
+    transform: scale(0.7);
+  }
+  
+  .particles-container {
+    /* Reduce particles on mobile for better performance */
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .particle,
+  .floating-shape {
+    animation: none;
+  }
+  
+  .gradient-overlay {
+    background: linear-gradient(135deg, 
+      rgba(15, 15, 35, 0.9) 0%, 
+      rgba(26, 26, 46, 0.8) 50%, 
+      rgba(22, 33, 62, 0.9) 100%
+    );
+  }
+}
+
+/* Additional visual effects */
+.css-background-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    radial-gradient(circle at 30% 30%, rgba(99, 102, 241, 0.05) 0%, transparent 70%),
+    radial-gradient(circle at 70% 70%, rgba(139, 92, 246, 0.05) 0%, transparent 70%);
+  animation: bgPulse 8s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+@keyframes bgPulse {
+  0% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+} 
