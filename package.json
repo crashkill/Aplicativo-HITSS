@@ -32,7 +32,8 @@
     "setup:env": "npm run env:setup",
     "upload:env": "npm run env:upload",
     "security:backup": "tsx scripts/upload-env.ts",
-    "security:complete-cleanup": "tsx scripts/complete-security-cleanup.ts"
+    "security:complete-cleanup": "tsx scripts/complete-security-cleanup.ts",
+    "system:health": "tsx scripts/system-health-check.ts"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
