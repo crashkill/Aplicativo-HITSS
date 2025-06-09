@@ -53,7 +53,7 @@ const SupabaseMCPDemo: React.FC = () => {
         const mockResult = {
           projects: [
             {
-              id: process.env.VITE_SUPABASE_PROJECT_ID || process.env.VITE_SUPABASE_PROJECT_ID || 'pwksgdjjkryqryqrvyja',
+              id: import.meta.env.VITE_SUPABASE_PROJECT_ID || 'pwksgdjjkryqryqrvyja',
               name: 'Aplicativo HITSS',
               status: 'ACTIVE',
               region: 'us-east-1'
@@ -73,7 +73,7 @@ const SupabaseMCPDemo: React.FC = () => {
   const testListTables = async () => {
     setIsLoading(true);
     try {
-      const projectId = process.env.VITE_SUPABASE_PROJECT_ID || process.env.VITE_SUPABASE_PROJECT_ID || 'pwksgdjjkryqryqrvyja';
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || 'pwksgdjjkryqryqrvyja';
       
       // Em um ambiente real com MCP configurado:
       // const result = await mcp_supabase_list_tables({ project_id: projectId });
@@ -100,7 +100,7 @@ const SupabaseMCPDemo: React.FC = () => {
   const testExecuteSQL = async () => {
     setIsLoading(true);
     try {
-      const projectId = process.env.VITE_SUPABASE_PROJECT_ID || process.env.VITE_SUPABASE_PROJECT_ID || 'pwksgdjjkryqryqrvyja';
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || 'pwksgdjjkryqryqrvyja';
       const query = 'SELECT COUNT(*) as total_professionals FROM colaboradores';
       
       console.log(`🔍 Executando SQL via MCP: ${query}`);
@@ -133,7 +133,7 @@ const SupabaseMCPDemo: React.FC = () => {
   const testApplyMigration = async () => {
     setIsLoading(true);
     try {
-      const projectId = process.env.VITE_SUPABASE_PROJECT_ID || process.env.VITE_SUPABASE_PROJECT_ID || 'pwksgdjjkryqryqrvyja';
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || 'pwksgdjjkryqryqrvyja';
       const migrationName = 'add_professional_skills_index';
       const migrationSQL = `
         CREATE INDEX IF NOT EXISTS idx_professionals_skills 

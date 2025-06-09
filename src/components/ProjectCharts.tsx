@@ -57,46 +57,8 @@ export function ProjectCharts({ transactions, selectedYear = 2024, selectedProje
           monthMap.set(`${mes}`, { receita: 0, custo: 0, percentual: 0, margem: 0 })
         }
 
-        // Buscar dados agregados por mês usando SQL otimizada
-        const { data: dadosMensais, error } = await supabase.rpc('sql', {
-          query: `
-            SELECT 
-              EXTRACT(MONTH FROM TO_DATE(periodo, 'MM/YYYY')) as mes,
-              natureza,
-              SUM(lancamento) as total
-            FROM dre_hitss 
-            WHERE relatorio = 'Realizado' 
-              AND periodo LIKE '%/${selectedYear}'
-              AND lancamento IS NOT NULL
-              ${selectedProjects.length > 0 ? `AND projeto = ANY(ARRAY[${selectedProjects.map(p => `'${p}'`).join(',')}])` : ''}
-            GROUP BY mes, natureza
-            ORDER BY mes, natureza
-          `
-        })
-
-        if (error) {
-          console.error('❌ Erro ao buscar dados mensais:', error)
-          // Fallback: buscar dados diretamente se a função SQL falhar
-          await buscarDadosDirecta(monthMap, selectedYear, selectedProjects)
-        } else {
-          console.log('✅ Dados mensais carregados:', dadosMensais?.length || 0, 'registros')
-          
-          // Processar dados agregados
-          dadosMensais?.forEach((row: any) => {
-            const mes = row.mes.toString()
-            const data = monthMap.get(mes)
-            
-            if (data) {
-              const valor = parseFloat(row.total) || 0
-              
-              if (row.natureza === 'RECEITA') {
-                data.receita += valor
-              } else if (row.natureza === 'CUSTO') {
-                data.custo += valor // Mantém o sinal original como no IndexedDB
-              }
-            }
-          })
-        }
+        // Buscar dados diretamente (função RPC sql não está disponível)
+        await buscarDadosDirecta(monthMap, selectedYear, selectedProjects)
 
         // Calcular margens
         monthMap.forEach((data) => {
