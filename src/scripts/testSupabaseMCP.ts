@@ -29,7 +29,7 @@ interface MCPMigrationResult {
 
 // Classe para demonstrar o uso das funções MCP
 export class SupabaseMCPTester {
-  private projectId = 'pwksgdjjkryqryqrvyja'; // ID do projeto HITSS
+  private projectId = process.env.VITE_SUPABASE_PROJECT_ID || process.env.VITE_SUPABASE_PROJECT_ID || 'pwksgdjjkryqryqrvyja'; // ID do projeto HITSS
 
   /**
    * Testa a função mcp_supabase_list_projects

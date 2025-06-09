@@ -1,7 +1,7 @@
 -- ============================================
 -- EXECUTE ESTE SCRIPT DIRETAMENTE NO SUPABASE
 -- ============================================
--- Acesse: https://supabase.com/dashboard/project/pwksgdjjkryqryqrvyja/sql
+-- Acesse: https://supabase.com/dashboard/project/[SEU_PROJETO_ID]/sql
 -- Cole este código no SQL Editor e execute
 
 -- ============================================

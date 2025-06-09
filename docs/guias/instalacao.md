@@ -78,11 +78,11 @@ nano .env  # ou code .env no VS Code
 **Configuração mínima (obrigatória):**
 ```env
 # Supabase (obrigatório)
-VITE_SUPABASE_URL=https://pwksgdjjkryqryqrvyja.supabase.co
+VITE_SUPABASE_URL=https://[SEU_PROJETO_ID].supabase.co
 VITE_SUPABASE_ANON_KEY=sua_chave_anonima_aqui
 
 # MCP Access Token (para migrations)
-SUPABASE_ACCESS_TOKEN=sbp_de3b77b0a605783d7461f64f4ee9cd739582221a
+SUPABASE_ACCESS_TOKEN=[SEU_SUPABASE_ACCESS_TOKEN]
 ```
 
 ### **Passo 4: Executar Migrations**

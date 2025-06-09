@@ -17,18 +17,62 @@ import {
 import { useConfig } from '../contexts/ConfigContext'
 import ThemeToggle from './ui/ThemeToggle'
 
-// Wrappers para os ícones com parâmetros padrão
-// Updated icon wrappers with default parameters
-const Analytics = ({ ...props } = {}) => <UilAnalytics {...props} />
-const FileAlt = ({ ...props } = {}) => <UilFileAlt {...props} />
-const ChartGrowth = ({ ...props } = {}) => <UilChartGrowth {...props} />
-const CloudUpload = ({ ...props } = {}) => <UilCloudUpload {...props} />
-const Setting = ({ ...props } = {}) => <UilSetting {...props} />
+// Wrappers para os ícones com propriedades explícitas e fallbacks
+const Analytics = ({ size = 20, color = 'currentColor', ...props }) => {
+  try {
+    return <UilAnalytics size={size} color={color} {...props} />
+  } catch (error) {
+    return <span style={{ fontSize: '16px' }}>📊</span>
+  }
+}
 
-const Bars = ({ ...props } = {}) => <UilBars {...props} />
-const AngleRight = ({ ...props } = {}) => <UilAngleRight {...props} />
-const People = ({ ...props } = {}) => <UilUsersAlt {...props} />
-const Database = ({ ...props } = {}) => <UilDatabase {...props} />
+const FileAlt = ({ size = 20, color = 'currentColor', ...props }) => {
+  try {
+    return <UilFileAlt size={size} color={color} {...props} />
+  } catch (error) {
+    return <span style={{ fontSize: '16px' }}>📄</span>
+  }
+}
+
+const ChartGrowth = ({ size = 20, color = 'currentColor', ...props }) => {
+  try {
+    return <UilChartGrowth size={size} color={color} {...props} />
+  } catch (error) {
+    return <span style={{ fontSize: '16px' }}>📈</span>
+  }
+}
+
+const CloudUpload = ({ size = 20, color = 'currentColor', ...props }) => {
+  try {
+    return <UilCloudUpload size={size} color={color} {...props} />
+  } catch (error) {
+    return <span style={{ fontSize: '16px' }}>☁️</span>
+  }
+}
+
+const Setting = ({ size = 20, color = 'currentColor', ...props }) => {
+  try {
+    return <UilSetting size={size} color={color} {...props} />
+  } catch (error) {
+    return <span style={{ fontSize: '16px' }}>⚙️</span>
+  }
+}
+
+const People = ({ size = 20, color = 'currentColor', ...props }) => {
+  try {
+    return <UilUsersAlt size={size} color={color} {...props} />
+  } catch (error) {
+    return <span style={{ fontSize: '16px' }}>👥</span>
+  }
+}
+
+const Database = ({ size = 20, color = 'currentColor', ...props }) => {
+  try {
+    return <UilDatabase size={size} color={color} {...props} />
+  } catch (error) {
+    return <span style={{ fontSize: '16px' }}>🗄️</span>
+  }
+}
 
 interface MenuIconProps {
   icon: React.ReactNode;
@@ -45,11 +89,9 @@ const MenuIcon = ({
 }: MenuIconProps): JSX.Element => {
   return (
     <div 
+      className="sidebar-menu-icon"
       style={{ 
         color: isActive ? '#0d6efd' : color,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
         transition: 'color 0.3s ease'
       }}
     >
@@ -74,43 +116,43 @@ const Sidebar = () => {
   const menuItems = [
     {
       text: 'Dashboard',
-      icon: <Analytics />,
+      icon: <Analytics size={20} color="currentColor" />,
       path: '/dashboard',
       color: '#2196f3'
     },
     {
       text: 'Planilhas Financeiras',
-      icon: <FileAlt />,
+      icon: <FileAlt size={20} color="currentColor" />,
       path: '/planilhas',
       color: '#4caf50'
     },
     {
       text: 'Forecast',
-      icon: <ChartGrowth />,
+      icon: <ChartGrowth size={20} color="currentColor" />,
       path: '/forecast',
       color: '#9c27b0'
     },
     {
       text: 'Gestão de Profissionais',
-      icon: <People />,
+      icon: <People size={20} color="currentColor" />,
       path: '/gestao-profissionais',
       color: '#e91e63'
     },
     {
       text: 'Upload',
-      icon: <CloudUpload />,
+      icon: <CloudUpload size={20} color="currentColor" />,
       path: '/upload',
       color: '#ff9800'
     },
     {
       text: 'Consulta SAP',
-      icon: <Database />,
+      icon: <Database size={20} color="currentColor" />,
       path: '/consulta-sap',
       color: '#00bcd4'
     },
     {
       text: 'Configurações',
-      icon: <Setting />,
+      icon: <Setting size={20} color="currentColor" />,
       path: '/config',
       color: '#607d8b'
     }
@@ -124,12 +166,13 @@ const Sidebar = () => {
         minHeight: '100vh', 
         position: 'fixed',
         transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        zIndex: 1000
       }}
     >
       <div className="p-3">
         <div className="d-flex align-items-center justify-content-between mb-4">
-          {isOpen && <h5 className="mb-0">Menu</h5>}
+          {isOpen && <h5 className="mb-0 text-slate-700 dark:text-slate-300">Menu</h5>}
           <div style={{ 
             color: '#6c757d',
             display: 'flex',
@@ -163,7 +206,8 @@ const Sidebar = () => {
                 style={{
                   borderRadius: '8px',
                   margin: '2px 0',
-                  transition: 'all 0.3s ease'
+                  transition: 'all 0.3s ease',
+                  textDecoration: 'none'
                 }}
               >
                 <MenuIcon 
@@ -193,7 +237,7 @@ const Sidebar = () => {
                 className="rounded-circle"
                 style={{ width: '40px', height: '40px', objectFit: 'cover' }}
               />
-              <span className="ms-2">{config.userName || 'Usuário'}</span>
+              <span className="ms-2 text-slate-700 dark:text-slate-300">{config.userName || 'Usuário'}</span>
             </div>
           )}
         </div>

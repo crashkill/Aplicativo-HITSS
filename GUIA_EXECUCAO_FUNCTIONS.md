@@ -14,7 +14,7 @@
 
 ### 1. Acesse o Supabase Dashboard
 ```
-https://supabase.com/dashboard/project/pwksgdjjkryqryqrvyja/sql
+https://supabase.com/dashboard/project/[SEU_PROJETO_ID]/sql
 ```
 
 ### 2. **EXECUTE O SCRIPT ATUALIZADO**

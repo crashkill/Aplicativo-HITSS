@@ -4,7 +4,7 @@ import { Professional } from '../types/talent/Professional';
 export class SupabaseMCPService {
   private projectId: string;
 
-  constructor(projectId: string = 'pwksgdjjkryqryqrvyja') {
+  constructor(projectId: string = process.env.VITE_SUPABASE_PROJECT_ID || process.env.VITE_SUPABASE_PROJECT_ID || 'pwksgdjjkryqryqrvyja') {
     this.projectId = projectId;
   }
 

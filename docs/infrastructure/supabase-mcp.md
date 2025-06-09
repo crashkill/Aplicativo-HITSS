@@ -16,7 +16,7 @@ O MCP (Model Context Protocol) do Supabase permite interação direta com projet
 ### 1. Projeto HITSS Ativo
 
 **Projeto Supabase Atual:**
-- **ID**: `pwksgdjjkryqryqrvyja`
+- **ID**: `[SEU_PROJETO_ID]`
 - **Nome**: Profissionais-HITSS
 - **Região**: South America (sa-east-1)
 - **Status**: ✅ ATIVO
@@ -26,11 +26,11 @@ O MCP (Model Context Protocol) do Supabase permite interação direta com projet
 
 ```bash
 # Token de acesso já configurado no sistema
-SUPABASE_ACCESS_TOKEN="sbp_de3b77b0a605783d7461f64f4ee9cd739582221a"
+SUPABASE_ACCESS_TOKEN="[SEU_SUPABASE_ACCESS_TOKEN]"
 
 # Projeto migrado de:
 # ❌ App-Financeiro (kxippwliqglukdhatuaa) - INATIVO
-# ✅ Profissionais-HITSS (pwksgdjjkryqryqrvyja) - ATIVO
+# ✅ Profissionais-HITSS ([SEU_PROJETO_ID]) - ATIVO
 ```
 
 ### 3. Configurar MCP Server (Opcional)
@@ -60,7 +60,7 @@ const projetos = await mcp_supabase_list_projects({
 {
   projects: [
     {
-      id: "pwksgdjjkryqryqrvyja",
+      id: "[SEU_PROJETO_ID]",
       name: "Profissionais-HITSS",
       status: "ACTIVE",
       region: "sa-east-1"
@@ -72,12 +72,12 @@ const projetos = await mcp_supabase_list_projects({
 ### 🔍 Detalhes do Projeto
 ```typescript
 const projeto = await mcp_supabase_get_project({ 
-  id: "pwksgdjjkryqryqrvyja" 
+  id: "[SEU_PROJETO_ID]" 
 });
 
 // Retorna informações completas do projeto
 {
-  id: "pwksgdjjkryqryqrvyja",
+  id: "[SEU_PROJETO_ID]",
   name: "Profissionais-HITSS",
   status: "ACTIVE",
   subscription_tier: "free",
@@ -88,7 +88,7 @@ const projeto = await mcp_supabase_get_project({
 ### 📋 Listar Tabelas
 ```typescript
 const tabelas = await mcp_supabase_list_tables({ 
-  project_id: "pwksgdjjkryqryqrvyja",
+  project_id: "[SEU_PROJETO_ID]",
   schemas: ["public", "auth"] // opcional
 });
 
@@ -105,7 +105,7 @@ const tabelas = await mcp_supabase_list_tables({
 ### ⚡ Executar SQL
 ```typescript
 const resultado = await mcp_supabase_execute_sql({
-  project_id: "pwksgdjjkryqryqrvyja",
+  project_id: "[SEU_PROJETO_ID]",
   query: `
     SELECT 
       COUNT(*) as total,
@@ -126,7 +126,7 @@ const resultado = await mcp_supabase_execute_sql({
 ### 🚀 Aplicar Migration
 ```typescript
 const migration = await mcp_supabase_apply_migration({
-  project_id: "pwksgdjjkryqryqrvyja",
+  project_id: "[SEU_PROJETO_ID]",
   name: "add_skills_index",
   query: `
     -- Criar índice para melhorar performance em buscas por skills
@@ -145,7 +145,7 @@ const migration = await mcp_supabase_apply_migration({
 ### 📊 Logs do Sistema
 ```typescript
 const logs = await mcp_supabase_get_logs({
-  project_id: "pwksgdjjkryqryqrvyja",
+  project_id: "[SEU_PROJETO_ID]",
   service: "api" // ou "postgres", "auth", "storage", etc.
 });
 
@@ -169,7 +169,7 @@ async function analisarSkills() {
   `;
   
   const resultado = await mcp_supabase_execute_sql({
-    project_id: "pwksgdjjkryqryqrvyja",
+    project_id: "[SEU_PROJETO_ID]",
     query
   });
   
@@ -193,7 +193,7 @@ async function relatorioFinanceiro() {
   `;
   
   const resultado = await mcp_supabase_execute_sql({
-    project_id: "pwksgdjjkryqryqrvyja",
+    project_id: "[SEU_PROJETO_ID]",
     query
   });
   
@@ -205,7 +205,7 @@ async function relatorioFinanceiro() {
 ```typescript
 async function otimizarDatabase() {
   const migration = await mcp_supabase_apply_migration({
-    project_id: "pwksgdjjkryqryqrvyja",
+    project_id: "[SEU_PROJETO_ID]",
     name: "performance_optimization",
     query: `
       -- Índices para buscas frequentes na tabela DRE
@@ -283,16 +283,16 @@ src/
 ### Configuração de Environment:
 ```env
 # .env
-VITE_SUPABASE_URL=https://pwksgdjjkryqryqrvyja.supabase.co
+VITE_SUPABASE_URL=https://[SEU_PROJETO_ID].supabase.co
 VITE_SUPABASE_ANON_KEY=sua_anon_key
-SUPABASE_ACCESS_TOKEN=sbp_de3b77b0a605783d7461f64f4ee9cd739582221a
+SUPABASE_ACCESS_TOKEN=[SEU_SUPABASE_ACCESS_TOKEN]
 ```
 
 ## ✅ Status de Funcionalidades
 
 ### **Funcionando Perfeitamente:**
 - ✅ **MCP Demo Interativa**: 100% funcional
-- ✅ **Conexão com Projeto**: pwksgdjjkryqryqrvyja ativo
+- ✅ **Conexão com Projeto**: [SEU_PROJETO_ID] ativo
 - ✅ **Execução de SQL**: Queries em tempo real
 - ✅ **Listagem de Projetos**: API funcionando
 - ✅ **Gestão de Tabelas**: Visualização completa
@@ -313,7 +313,7 @@ echo $SUPABASE_ACCESS_TOKEN
 
 # Verificar projeto ativo
 curl -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
-     https://api.supabase.com/v1/projects/pwksgdjjkryqryqrvyja
+     https://api.supabase.com/v1/projects/[SEU_PROJETO_ID]
 ```
 
 ### **Demo MCP Não Carrega**

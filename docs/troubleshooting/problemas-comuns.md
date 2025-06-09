@@ -138,7 +138,7 @@ npm run dev
 **Verificar configuração:**
 ```env
 # .env
-VITE_SUPABASE_URL=https://pwksgdjjkryqryqrvyja.supabase.co
+VITE_SUPABASE_URL=https://[SEU_PROJETO_ID].supabase.co
 VITE_SUPABASE_ANON_KEY=sua_chave_aqui
 ```
 
@@ -151,7 +151,7 @@ VITE_SUPABASE_ANON_KEY=sua_chave_aqui
 
 ### **❌ RLS Policy Error**
 **Projeto configurado:**
-- ✅ ID: `pwksgdjjkryqryqrvyja`
+- ✅ ID: `[SEU_PROJETO_ID]`
 - ✅ Nome: Profissionais-HITSS
 - ✅ Status: ATIVO
 

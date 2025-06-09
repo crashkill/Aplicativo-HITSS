@@ -93,11 +93,11 @@ npm run dev
 ### **Variáveis Obrigatórias**
 ```env
 # Supabase
-VITE_SUPABASE_URL=https://pwksgdjjkryqryqrvyja.supabase.co
+VITE_SUPABASE_URL=https://[SEU_PROJETO_ID].supabase.co
 VITE_SUPABASE_ANON_KEY=sua_chave_anonima
 
 # MCP (para migrations)
-SUPABASE_ACCESS_TOKEN=sbp_de3b77b0a605783d7461f64f4ee9cd739582221a
+SUPABASE_ACCESS_TOKEN=[SEU_SUPABASE_ACCESS_TOKEN]
 ```
 
 ### **APIs Opcionais (Melhoram Performance)**
@@ -270,7 +270,7 @@ const margem = receita > 0 ? (1 - (custoAjustado / receita)) * 100 : 0;
 
 - 🌐 **Aplicação Local**: http://localhost:3001
 - 🚀 **GitHub Pages**: `https://<seu-usuario>.github.io/Aplicativo-HITSS/`
-- 🗄️ **Supabase Dashboard**: [Projeto HITSS](https://supabase.com/dashboard/project/pwksgdjjkryqryqrvyja)
+- 🗄️ **Supabase Dashboard**: [Projeto HITSS](https://supabase.com/dashboard/project/[SEU_PROJETO_ID])
 - 📚 **Documentação**: [docs/README.md](./docs/README.md)
 - 🔧 **Migrations**: [docs/infrastructure/migrations.md](./docs/infrastructure/migrations.md)
 - ⚙️ **GitHub Actions**: [Setup Guide](./docs/infrastructure/github-actions-setup.md)
@@ -301,7 +301,7 @@ const margem = receita > 0 ? (1 - (custoAjustado / receita)) * 100 : 0;
 
 ### **2024-01-14** - MCP Integration
 - ✅ **MCP Demo**: Interface funcionando na página Analytics
-- ✅ **Supabase**: Projeto migrado para `pwksgdjjkryqryqrvyja`
+- ✅ **Supabase**: Projeto migrado para `[SEU_PROJETO_ID]`
 - ✅ **APIs**: Integração completa funcionando
 
 ---

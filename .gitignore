@@ -39,3 +39,19 @@ src/modelos/
 *.bak
 *.tmp
 *.temp
+
+# 🔒 Arquivos sensíveis (Credenciais)
+.env.real-backup-*
+.env.backup.*
+.env.original
+.env.production
+.env.staging
+*.key
+*.pem
+credentials.json
+config.json
+secrets/
+private/
+
+# 🛡️ Backups de segurança
+backups/before-cleanup-*/

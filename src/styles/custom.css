@@ -164,3 +164,430 @@ h1, h2, h3, h4, h5, h6 {
   opacity: 0;
   transition: opacity 300ms ease-in;
 }
+
+/* Estilos personalizados para o aplicativo HITSS */
+
+/* Melhorias para exibição de ícones */
+.nav-link svg {
+  display: inline-block !important;
+  vertical-align: middle !important;
+  fill: currentColor !important;
+  color: inherit !important;
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+}
+
+/* Garantir que ícones sejam visíveis em qualquer tema */
+.nav-link:not(.active) svg {
+  opacity: 0.8;
+}
+
+.nav-link:hover svg {
+  opacity: 1;
+}
+
+.nav-link.active svg {
+  opacity: 1;
+  filter: brightness(1.1);
+}
+
+/* Fix para ícones SVG em containers flex */
+.d-flex svg,
+.flex svg {
+  flex-shrink: 0 !important;
+}
+
+/* Estilos específicos para o Sidebar */
+.sidebar-menu-icon {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  min-height: 24px !important;
+}
+
+.sidebar-menu-icon svg {
+  width: 20px !important;
+  height: 20px !important;
+  fill: currentColor !important;
+  stroke: currentColor !important;
+}
+
+/* Correções gerais para SVGs */
+svg {
+  pointer-events: none;
+  max-width: 100%;
+  height: auto;
+}
+
+/* Estilos para o Bootstrap nav-link */
+.nav-link {
+  text-decoration: none !important;
+}
+
+.nav-link:hover {
+  text-decoration: none !important;
+}
+
+/* Dark mode específico para ícones */
+.dark .nav-link svg {
+  color: inherit !important;
+}
+
+/* Melhorias para responsividade */
+@media (max-width: 768px) {
+  .nav-link svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+  
+  .sidebar-menu-icon {
+    width: 20px !important;
+    height: 20px !important;
+  }
+}
+
+/* DataGrid styles */
+.simple-data-grid {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.simple-data-grid .grid-header {
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+  font-weight: 600;
+}
+
+.simple-data-grid .grid-row:hover {
+  background-color: #f8f9fa;
+}
+
+.simple-data-grid .grid-cell {
+  border-right: 1px solid #dee2e6;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.simple-data-grid .grid-cell:last-child {
+  border-right: none;
+}
+
+.simple-data-grid .grid-cell.numeric {
+  text-align: right;
+  font-family: 'Courier New', monospace;
+}
+
+.simple-data-grid .grid-cell.editable {
+  background-color: #fff3cd;
+  cursor: pointer;
+}
+
+.simple-data-grid .grid-cell.editable:hover {
+  background-color: #ffeaa7;
+}
+
+.simple-data-grid .grid-cell.readonly {
+  background-color: #e9ecef;
+  color: #6c757d;
+}
+
+.simple-data-grid .grid-cell input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: inherit;
+  text-align: inherit;
+}
+
+.simple-data-grid .grid-cell.number input {
+  text-align: right;
+}
+
+.simple-data-grid .add-row-btn {
+  margin-top: 10px;
+  padding: 8px 16px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.simple-data-grid .add-row-btn:hover {
+  background-color: #0056b3;
+}
+
+/* Dark mode adaptations */
+.dark .simple-data-grid .grid-header {
+  background-color: #374151;
+  color: #f9fafb;
+  border-bottom-color: #4b5563;
+}
+
+.dark .simple-data-grid .grid-row:hover {
+  background-color: #374151;
+}
+
+.dark .simple-data-grid .grid-cell {
+  border-right-color: #4b5563;
+  color: #f9fafb;
+}
+
+.dark .simple-data-grid .grid-cell.editable {
+  background-color: #92400e;
+}
+
+.dark .simple-data-grid .grid-cell.editable:hover {
+  background-color: #b45309;
+}
+
+.dark .simple-data-grid .grid-cell.readonly {
+  background-color: #4b5563;
+  color: #9ca3af;
+}
+
+/* Prevent line breaks in currency cells */
+.simple-data-grid .grid-cell.currency,
+.simple-data-grid .grid-cell.numeric {
+  white-space: nowrap;
+}
+
+/* Talent Management specific styles */
+.talent-management-container {
+  min-height: calc(100vh - 120px);
+}
+
+.stats-card {
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.stats-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.collaborator-card {
+  transition: all 0.3s ease;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.collaborator-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.skill-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  margin: 2px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.skill-badge.primary {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.skill-badge.secondary {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.dark .skill-badge.primary {
+  background-color: #1e3a8a;
+  color: #93c5fd;
+}
+
+.dark .skill-badge.secondary {
+  background-color: #4b5563;
+  color: #d1d5db;
+}
+
+/* WebGL Background styles */
+.webgl-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.webgl-background canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Loading states */
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+}
+
+.loading-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: .5;
+  }
+}
+
+/* Error states */
+.error-container {
+  text-align: center;
+  padding: 2rem;
+  color: #dc2626;
+}
+
+.dark .error-container {
+  color: #fca5a5;
+}
+
+/* Form improvements */
+.form-floating > .form-control:focus ~ label,
+.form-floating > .form-control:not(:placeholder-shown) ~ label {
+  opacity: .65;
+  transform: scale(.85) translateY(-.5rem) translateX(.15rem);
+}
+
+/* Table improvements */
+.table-responsive {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.table {
+  margin-bottom: 0;
+}
+
+.table th {
+  border-top: none;
+  font-weight: 600;
+  background-color: #f8f9fa;
+}
+
+.dark .table th {
+  background-color: #374151;
+  color: #f9fafb;
+  border-color: #4b5563;
+}
+
+.dark .table td {
+  border-color: #4b5563;
+  color: #f9fafb;
+}
+
+/* Badge improvements */
+.badge {
+  font-weight: 500;
+  letter-spacing: 0.025em;
+}
+
+/* Button improvements */
+.btn {
+  font-weight: 500;
+  transition: all 0.15s ease-in-out;
+}
+
+.btn:focus {
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* Card improvements */
+.card {
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.15s ease-in-out;
+}
+
+.card:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.dark .card {
+  border-color: #4b5563;
+  background-color: #1f2937;
+  color: #f9fafb;
+}
+
+/* Utility classes */
+.text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bg-pattern {
+  background-image: radial-gradient(circle at 1px 1px, rgba(0,0,0,.15) 1px, transparent 0);
+  background-size: 20px 20px;
+}
+
+.dark .bg-pattern {
+  background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,.1) 1px, transparent 0);
+}
+
+/* Smooth transitions */
+* {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.1s ease;
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .table {
+    border-collapse: collapse !important;
+  }
+  
+  .table th,
+  .table td {
+    border: 1px solid #000 !important;
+  }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus improvements */
+.btn:focus,
+.form-control:focus,
+.form-select:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .card {
+    border: 2px solid;
+  }
+  
+  .btn {
+    border: 2px solid;
+  }
+}

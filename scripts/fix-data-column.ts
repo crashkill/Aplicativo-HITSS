@@ -8,7 +8,13 @@ async function fixDataColumn() {
     console.log('🔧 Alterando tipo da coluna data para TEXT...')
     
     const projectId = 'pwksgdjjkryqryqrvyja'
-    const accessToken = 'sbp_de3b77b0a605783d7461f64f4ee9cd739582221a'
+    const accessToken = process.env.SUPABASE_ACCESS_TOKEN || ''
+
+if (!accessToken) {
+  console.error('❌ SUPABASE_ACCESS_TOKEN não encontrado nas variáveis de ambiente')
+  process.exit(1)
+}
+
     
     // SQL para alterar a coluna
     const sql = `ALTER TABLE dre_hitss ALTER COLUMN data TYPE TEXT USING data::TEXT;`

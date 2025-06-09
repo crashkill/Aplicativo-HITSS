@@ -13,7 +13,7 @@ export class MigrationService {
   private projectId: string;
 
   private constructor() {
-    this.projectId = 'pwksgdjjkryqryqrvyja'; // ID do projeto ativo
+    this.projectId = process.env.VITE_SUPABASE_PROJECT_ID || process.env.VITE_SUPABASE_PROJECT_ID || 'pwksgdjjkryqryqrvyja'; // ID do projeto ativo
   }
 
   static getInstance(): MigrationService {
@@ -49,7 +49,7 @@ export class MigrationService {
       const response = await fetch(`https://api.supabase.com/v1/projects/${this.projectId}/database/query`, {
         method: 'POST',
         headers: {
-          'Authorization': 'Bearer sbp_de3b77b0a605783d7461f64f4ee9cd739582221a',
+          'Authorization': `Bearer ${process.env.SUPABASE_ACCESS_TOKEN}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ query: createMigrationTableSQL })
@@ -102,7 +102,7 @@ export class MigrationService {
       const response = await fetch(`https://api.supabase.com/v1/projects/${this.projectId}/database/query`, {
         method: 'POST',
         headers: {
-          'Authorization': 'Bearer sbp_de3b77b0a605783d7461f64f4ee9cd739582221a',
+          'Authorization': `Bearer ${process.env.SUPABASE_ACCESS_TOKEN}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ query: migration.sql })
