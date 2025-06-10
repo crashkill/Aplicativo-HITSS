@@ -11,7 +11,7 @@ import {
   Legend,
   Filler,
 } from 'chart.js';
-import { Box, useTheme } from '@mui/material';
+// Removido Material-UI para compatibilidade
 import { ForecastData } from '../types/forecast';
 
 ChartJS.register(
@@ -31,7 +31,12 @@ interface ForecastChartProps {
 }
 
 const ForecastChart: React.FC<ForecastChartProps> = ({ data, showArea = true }) => {
-  const theme = useTheme();
+  // Cores padrão do Bootstrap ao invés do Material-UI theme
+  const colors = {
+    success: '#28a745',
+    danger: '#dc3545', 
+    primary: '#007bff'
+  };
 
   const chartData = {
     labels: Object.keys(data.dados),
@@ -39,24 +44,24 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, showArea = true }) 
       {
         label: 'Receita',
         data: Object.values(data.dados).map(d => d.receita),
-        borderColor: theme.palette.success.main,
-        backgroundColor: showArea ? `${theme.palette.success.main}20` : undefined,
+        borderColor: colors.success,
+        backgroundColor: showArea ? `${colors.success}20` : undefined,
         fill: showArea,
         tension: 0.4,
       },
       {
         label: 'Custo',
         data: Object.values(data.dados).map(d => Math.abs(d.custoTotal)),
-        borderColor: theme.palette.error.main,
-        backgroundColor: showArea ? `${theme.palette.error.main}20` : undefined,
+        borderColor: colors.danger,
+        backgroundColor: showArea ? `${colors.danger}20` : undefined,
         fill: showArea,
         tension: 0.4,
       },
       {
         label: 'Margem',
         data: Object.values(data.dados).map(d => d.margemBruta),
-        borderColor: theme.palette.primary.main,
-        backgroundColor: showArea ? `${theme.palette.primary.main}20` : undefined,
+        borderColor: colors.primary,
+        backgroundColor: showArea ? `${colors.primary}20` : undefined,
         fill: showArea,
         tension: 0.4,
       },
@@ -107,9 +112,9 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, showArea = true }) 
   };
 
   return (
-    <Box sx={{ height: 400, width: '100%' }}>
+    <div style={{ height: '400px', width: '100%' }}>
       <Line data={chartData} options={options} />
-    </Box>
+    </div>
   );
 };
 

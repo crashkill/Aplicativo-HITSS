@@ -1,4 +1,207 @@
-# 🎯 Aplicativo HITSS - Sistema Consolidado
+# 🏢 HITSS - Sistema de Gestão Empresarial
+
+> Aplicação web completa para gestão financeira, controle de profissionais e análise de dados empresariais.
+
+## 🚀 Tecnologias Utilizadas
+
+- **Frontend:** React 18 + TypeScript + Vite
+- **Backend:** Supabase (PostgreSQL + Auth + Real-time)
+- **Styling:** Tailwind CSS + Lucide Icons
+- **Charts:** Recharts para visualização de dados
+- **State Management:** React Hooks + Context API
+
+## 📋 Funcionalidades
+
+### 🏠 Dashboard
+- Visão geral financeira com métricas em tempo real
+- Gráficos de receitas, despesas e lucratividade
+- Estatísticas de colaboradores e projetos
+- Indicadores de performance mensal
+
+### 📊 Planilhas Financeiras
+- Upload e processamento de planilhas Excel/CSV
+- Análise automática de dados financeiros
+- Relatórios detalhados de DRE (Demonstração do Resultado do Exercício)
+- Histórico de transações
+
+### 📈 Forecast
+- Projeções financeiras baseadas em dados históricos
+- Gráficos interativos de tendências
+- Cenários otimista, realista e pessimista
+- Análise de sazonalidade
+
+### 👥 Gestão de Profissionais
+- Cadastro completo de colaboradores
+- Controle de cargos, salários e benefícios
+- Histórico de alterações
+- Relatórios de custos com pessoal
+
+### 📁 Upload de Dados
+- Interface drag-and-drop para arquivos
+- Validação automática de formatos
+- Processamento em lote
+- Feedback visual do progresso
+
+### 🔍 Consulta SAP
+- Integração com sistemas SAP
+- Consultas em tempo real
+- Sincronização de dados
+- Relatórios customizados
+
+### ⚙️ Configurações
+- Gerenciamento de usuários e permissões
+- Configurações de backup
+- Preferências do sistema
+- Logs de auditoria
+
+## 🛠️ Instalação e Execução
+
+### Pré-requisitos
+- Node.js 18+ 
+- npm ou yarn
+- Conta no Supabase
+
+### 1. Clone o repositório
+```bash
+git clone https://github.com/seu-usuario/aplicativo-hitss.git
+cd aplicativo-hitss
+```
+
+### 2. Instale as dependências
+```bash
+npm install
+```
+
+### 3. Configure as variáveis de ambiente
+```bash
+cp .env.example .env
+```
+
+Edite o arquivo `.env` com suas credenciais do Supabase:
+```env
+VITE_SUPABASE_URL=sua_url_do_supabase
+VITE_SUPABASE_ANON_KEY=sua_chave_anon_do_supabase
+VITE_SUPABASE_ACCESS_TOKEN=seu_token_de_acesso
+```
+
+### 4. Execute as migrations (primeira vez)
+```bash
+npm run migrate
+```
+
+### 5. Inicie o servidor de desenvolvimento
+```bash
+npm run dev
+```
+
+A aplicação estará disponível em `http://localhost:3000`
+
+## 🗄️ Estrutura do Banco de Dados
+
+### Tabela `colaboradores`
+- Informações pessoais e profissionais
+- Cargos, salários e benefícios
+- Histórico de alterações
+
+### Tabela `dre_hitss`
+- Dados financeiros mensais
+- Receitas, despesas e resultados
+- Categorização por centro de custo
+- Análise de lucratividade
+
+## 📁 Estrutura do Projeto
+
+```
+src/
+├── components/          # Componentes React reutilizáveis
+├── pages/              # Páginas da aplicação
+├── services/           # Serviços e integrações
+├── hooks/              # Custom hooks
+├── types/              # Definições TypeScript
+├── utils/              # Funções utilitárias
+└── styles/             # Estilos globais
+
+migrations/             # Scripts SQL para banco de dados
+scripts/               # Scripts de automação
+public/               # Arquivos estáticos
+```
+
+## 🔧 Scripts Disponíveis
+
+```bash
+# Desenvolvimento
+npm run dev              # Inicia servidor de desenvolvimento
+npm run build           # Build para produção
+npm run preview         # Preview do build
+
+# Banco de dados
+npm run migrate         # Executa migrations
+npm run test-db        # Testa conexão com banco
+
+# Utilitários
+npm run lint           # Verifica código
+npm run type-check     # Verificação de tipos
+```
+
+## 🔐 Segurança
+
+- Autenticação via Supabase Auth
+- Row Level Security (RLS) configurado
+- Validação de entrada em todas as APIs
+- Sanitização de dados
+- Controle de permissões por usuário
+
+## 🚨 Troubleshooting
+
+### Erro 401 - Invalid API Key
+Se você encontrar erros de autenticação:
+
+1. Verifique se as chaves no `.env` estão corretas
+2. Confirme se o projeto Supabase está ativo
+3. Execute o script de teste: `npm run test-db`
+4. Se necessário, regenere as chaves no dashboard do Supabase
+
+### Problemas de Migração
+Para problemas com banco de dados:
+
+1. Verifique a conectividade: `npm run test-db`
+2. Execute migrations manualmente: `npm run migrate`
+3. Verifique logs no console do Supabase
+
+## 📈 Performance
+
+- Lazy loading de componentes
+- Otimização de imagens
+- Cache de dados com React Query
+- Bundle splitting automático
+- Compressão de assets
+
+## 🤝 Contribuição
+
+1. Fork o projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/nova-funcionalidade`)
+3. Commit suas mudanças (`git commit -m 'Adiciona nova funcionalidade'`)
+4. Push para a branch (`git push origin feature/nova-funcionalidade`)
+5. Abra um Pull Request
+
+## 📄 Licença
+
+Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+
+## 📞 Suporte
+
+Para suporte técnico ou dúvidas:
+- Email: suporte@hitss.com
+- Issues: [GitHub Issues](https://github.com/seu-usuario/aplicativo-hitss/issues)
+- Documentação: [Wiki do Projeto](https://github.com/seu-usuario/aplicativo-hitss/wiki)
+
+---
+
+**Desenvolvido com ❤️ pela equipe HITSS**
+
+---
+
+## 🎯 Aplicativo HITSS - Sistema Consolidado
 
 [![Status](https://img.shields.io/badge/Status-Produção-green.svg)](https://github.com/crashkill/aplicativo-hitss)
 [![React](https://img.shields.io/badge/React-18.3.1-blue.svg)](https://reactjs.org/)
