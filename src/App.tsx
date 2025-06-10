@@ -12,6 +12,7 @@ import GestaoProfissionais from './pages/GestaoProfissionais'
 import ConsultaSAP from './pages/ConsultaSAP'
 import Layout from './components/Layout'
 import { useEffect } from 'react'
+import { useIsAuthenticated } from "@azure/msal-react";
 
 // Componente para rotas protegidas
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
@@ -45,89 +46,93 @@ export function ThemeWrapper({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
-  const { user } = useAuth()
+  const { user } = useAuth(); // Mantemos o useAuth por enquanto, se necessário
+  const isAuthenticated = useIsAuthenticated();
 
   return (
     <ThemeProvider>
       <ThemeWrapper>
         <div data-testid="app-container" className="min-h-screen transition-colors duration-300 bg-background text-foreground">
-      <Routes>
-        {/* Rota pública de Login */}
-        <Route path="/login" element={<Login />} />
+          <Routes>
+            {/* Se o usuário NÃO estiver autenticado pelo MSAL, mostre apenas a página de login */}
+            {!isAuthenticated && <Route path="*" element={<Login />} />}
 
-        {/* Rotas Protegidas */}
-        <Route
-          path="/dashboard"
-          element={
-            <PrivateRoute>
-              <Dashboard />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/planilhas"
-          element={
-            <PrivateRoute>
-              <PlanilhasFinanceiras />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/forecast"
-          element={
-            <PrivateRoute>
-              <Forecast />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/gestao-profissionais"
-          element={
-            <PrivateRoute>
-              <GestaoProfissionais />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/upload"
-          element={
-            <PrivateRoute>
-              <Upload />
-            </PrivateRoute>
-          }
-        />
-
-        <Route
-          path="/consulta-sap"
-          element={
-            <PrivateRoute>
-              <ConsultaSAP />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/config"
-          element={
-            <PrivateRoute>
-              <Config />
-            </PrivateRoute>
-          }
-        />
-        
-        {/* Redirecionamento da raiz e Rota Catch-all */}
-        <Route 
-          path="/" 
-          element={user ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />} 
-        />
-        <Route 
-          path="*" 
-          element={user ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />} 
-        />
-      </Routes>
+            {/* Se o usuário ESTIVER autenticado, renderize as rotas protegidas */}
+            {isAuthenticated && (
+              <>
+                <Route
+                  path="/dashboard"
+                  element={
+                    <PrivateRoute>
+                      <Dashboard />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="/planilhas"
+                  element={
+                    <PrivateRoute>
+                      <PlanilhasFinanceiras />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="/forecast"
+                  element={
+                    <PrivateRoute>
+                      <Forecast />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="/gestao-profissionais"
+                  element={
+                    <PrivateRoute>
+                      <GestaoProfissionais />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="/upload"
+                  element={
+                    <PrivateRoute>
+                      <Upload />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="/consulta-sap"
+                  element={
+                    <PrivateRoute>
+                      <ConsultaSAP />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="/config"
+                  element={
+                    <PrivateRoute>
+                      <Config />
+                    </PrivateRoute>
+                  }
+                />
+                {/* Redirecionamento da raiz */}
+                <Route 
+                  path="/" 
+                  element={<Navigate to="/dashboard" replace />} 
+                />
+                {/* Fallback para qualquer outra rota */}
+                <Route 
+                  path="*" 
+                  element={<Navigate to="/dashboard" replace />} 
+                />
+              </>
+            )}
+          </Routes>
         </div>
       </ThemeWrapper>
     </ThemeProvider>
   )
 }
 
-export default App
+export default App;

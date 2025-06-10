@@ -1,100 +1,46 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Container, Row, Col, Card, Form, Button, Alert } from 'react-bootstrap'
-import { useAuth } from '../contexts/AuthContext'
+import React from "react";
+import { useMsal } from "@azure/msal-react";
+import { loginRequest } from "../config/authConfig";
+import { Button } from "react-bootstrap";
+import { FaMicrosoft } from "react-icons/fa";
 
-const Login = () => {
-  const navigate = useNavigate()
-  const { login } = useAuth()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [validationErrors, setValidationErrors] = useState<{email?: string; password?: string}>({})
-  const [isLoading, setIsLoading] = useState(false)
+const Login: React.FC = () => {
+  const { instance } = useMsal();
 
-  const validateForm = () => {
-    const errors: {email?: string; password?: string} = {}
-    if (!email) errors.email = 'E-mail é obrigatório'
-    // else if (!/\S+@\S+\.\S+/.test(email)) errors.email = 'E-mail inválido' // Temporariamente comentado
-    if (!password) errors.password = 'Senha é obrigatória'
-    setValidationErrors(errors)
-    return Object.keys(errors).length === 0
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!validateForm()) return
-    
-    setIsLoading(true)
-    setError('')
-
-    try {
-      await login(email, password)
-      navigate('/dashboard')
-    } catch (err) {
-      setError('Email ou senha inválidos')
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  const handleLogin = () => {
+    instance.loginPopup(loginRequest).catch((e) => {
+      console.error("Erro durante o login popup:", e);
+    });
+  };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100">
-      <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-md">
-        <div className="mb-6 text-center">
-          <h2 className="text-2xl font-bold text-gray-800">Bem-vindo ao Sistema Financeiro</h2>
-          <p className="mt-2 text-sm text-gray-600">Por favor, faça login para continuar</p>
-        </div>
-
-        {error && (
-          <Alert variant="danger" className="mb-4">
-            {error}
-          </Alert>
-        )}
-
-        <Form onSubmit={handleSubmit}>
-          <Form.Group className="mb-3">
-            <Form.Label htmlFor="email">E-mail</Form.Label>
-            <Form.Control
-              id="email"
-              type="text"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              aria-label="E-mail"
-              isInvalid={!!validationErrors.email}
-            />
-            <Form.Control.Feedback type="invalid">
-              {validationErrors.email}
-            </Form.Control.Feedback>
-          </Form.Group>
-
-          <Form.Group className="mb-4">
-            <Form.Label htmlFor="password">Senha</Form.Label>
-            <Form.Control
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              aria-label="Senha"
-              isInvalid={!!validationErrors.password}
-            />
-            <Form.Control.Feedback type="invalid">
-              {validationErrors.password}
-            </Form.Control.Feedback>
-          </Form.Group>
-
-          <Button
-            type="submit"
-            variant="primary"
-            className="w-100"
-            disabled={isLoading}
-          >
-            {isLoading ? 'Entrando...' : 'Entrar'}
-          </Button>
-        </Form>
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        height: "100vh",
+        flexDirection: "column",
+        backgroundColor: "#f0f2f5",
+      }}
+    >
+      <div
+        style={{
+          padding: "40px",
+          borderRadius: "8px",
+          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+          backgroundColor: "white",
+          textAlign: "center",
+        }}
+      >
+        <h2>Bem-vindo</h2>
+        <p className="mb-4">Clique no botão abaixo para entrar com sua conta Microsoft.</p>
+        <Button variant="primary" onClick={handleLogin}>
+          <FaMicrosoft className="me-2" /> Entrar com Microsoft
+        </Button>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Login
+export default Login;

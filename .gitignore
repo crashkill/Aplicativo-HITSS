@@ -55,3 +55,7 @@ private/
 
 # 🛡️ Backups de segurança
 backups/before-cleanup-*/
+
+# Arquivos do Doppler
+doppler.exe
+doppler.zip
