@@ -8,8 +8,10 @@ import { dreSupabaseViews, DashboardSummary, MetadadosProjeto } from '../service
 import { db } from '../db/database'
 import type { Transacao } from '../db/database'
 import { supabase } from '../services/supabaseClient'
+import { useAuth } from '../contexts/AuthContext'
 
 const Dashboard = () => {
+  const { user } = useAuth()
   // Estados para dados processados pelo Supabase (regras de negócio centralizadas)
   const [dashboardData, setDashboardData] = useState<DashboardSummary | null>(null)
   const [metadata, setMetadata] = useState<MetadadosProjeto | null>(null)
@@ -49,9 +51,10 @@ const Dashboard = () => {
         console.error('❌ Erro ao carregar metadados:', error)
       }
     }
-
-    carregarMetadados()
-  }, [])
+    if (user) {
+      carregarMetadados()
+    }
+  }, [user])
 
   // Carregar dados financeiros quando ano/projetos mudam
   useEffect(() => {
@@ -73,9 +76,10 @@ const Dashboard = () => {
         setLoading(false)
       }
     }
-
-    carregarDashboard()
-  }, [selectedYear, selectedProjects])
+    if (user) {
+      carregarDashboard()
+    }
+  }, [selectedYear, selectedProjects, user])
 
   // Carregar dados dos colaboradores
   useEffect(() => {
@@ -95,9 +99,10 @@ const Dashboard = () => {
         setLoadingCollaborators(false)
       }
     }
-
-    loadCollaboratorStats()
-  }, [])
+    if (user) {
+      loadCollaboratorStats()
+    }
+  }, [user])
 
   // Carregar todas as transações
   useEffect(() => {
