@@ -2,9 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { MsalProvider } from "@azure/msal-react";
-import { PublicClientApplication } from "@azure/msal-browser";
-import { msalConfig } from "./config/authConfig";
+import { CustomMsalProvider } from './contexts/MsalProvider'
 import { AuthProvider } from './contexts/AuthContext'
 import { ConfigProvider } from './contexts/ConfigContext'
 import { ThemeProvider } from './contexts/ThemeContext'
@@ -35,22 +33,17 @@ if (!rootElement) {
   document.body.appendChild(root)
 }
 
-/**
- * Cria uma instância do PublicClientApplication que será passada para o MsalProvider.
- * Esta instância não deve ser recriada a cada renderização.
- */
-const msalInstance = new PublicClientApplication(msalConfig);
-
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter
+        basename="/Aplicativo-HITSS"
         future={{
           v7_startTransition: true,
           v7_relativeSplatPath: true
         }}
       >
-        <MsalProvider instance={msalInstance}>
+        <CustomMsalProvider>
           <ThemeProvider>
             <AuthProvider>
               <ConfigProvider>
@@ -58,7 +51,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               </ConfigProvider>
             </AuthProvider>
           </ThemeProvider>
-        </MsalProvider>
+        </CustomMsalProvider>
       </BrowserRouter>
     </QueryClientProvider>
   </React.StrictMode>,

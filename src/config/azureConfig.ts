@@ -1,16 +1,26 @@
 import { LogLevel } from '@azure/msal-browser';
 
-// Credenciais Azure AD fornecidas
-const AZURE_CLIENT_ID = 'bd89001b-064b-4f28-a1c4-988422e013bb';
-const AZURE_TENANT_ID = 'd6c7d4eb-ad17-46c8-a404-f6a92cbead96';
+// Credenciais Azure AD do Doppler
+const AZURE_CLIENT_ID = import.meta.env.VITE_AZURE_CLIENT_ID || 'bd89001b-064b-4f28-a1c4-988422e013bb';
+const AZURE_TENANT_ID = import.meta.env.VITE_AZURE_TENANT_ID || 'd6c7d4eb-ad17-46c8-a404-f6a92cbead96';
+
+// URLs de redirecionamento configuradas
+const getRedirectUri = () => {
+  const baseUrl = window.location.origin;
+  // Para desenvolvimento local na porta 3001
+  if (baseUrl.includes('localhost:3001')) {
+    return 'http://localhost:3001/Aplicativo-HITSS/';
+  }
+  return baseUrl;
+};
 
 // Configuração para Azure AD usando MSAL
 export const msalConfig = {
   auth: {
     clientId: AZURE_CLIENT_ID,
     authority: `https://login.microsoftonline.com/${AZURE_TENANT_ID}`,
-    redirectUri: window.location.origin,
-    postLogoutRedirectUri: window.location.origin,
+    redirectUri: getRedirectUri(),
+    postLogoutRedirectUri: getRedirectUri(),
     navigateToLoginRequestUrl: false,
   },
   cache: {

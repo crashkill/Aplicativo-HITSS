@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "commonjs",
-  "description": "Sistema consolidado HITSS - Gestão Financeira + Talentos Tecnológicos",
+  "description": "Sistema consolidado HITSS - Gestão Financeira + Talentos Tecnológicos (Requer Doppler para funcionamento completo)",
   "keywords": [
     "hitss",
     "gestao-financeira",
@@ -13,7 +13,9 @@
     "dashboard"
   ],
   "scripts": {
-    "dev": "vite",
+    "dev": "doppler run -- vite --port 3001",
+    "dev:local": "vite --port 3001",
+    "dev:doppler": "doppler run -- vite --port 3001",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
@@ -35,7 +37,10 @@
     "security:complete-cleanup": "tsx scripts/complete-security-cleanup.ts",
     "system:health": "tsx scripts/system-health-check.ts",
     "test:browser": "tsx scripts/test-browser-errors.ts",
-    "browser:health": "tsx scripts/browser-health-check.ts"
+    "browser:health": "tsx scripts/browser-health-check.ts",
+    "doppler:check": "doppler secrets --silent && echo '✅ Doppler configurado corretamente' || echo '❌ Doppler não configurado. Execute: doppler setup'",
+    "start": "npm run dev",
+    "postinstall": "echo '📋 Para executar a aplicação: npm run dev (requer Doppler configurado)'"
   },
   "dependencies": {
     "@azure/msal-browser": "^4.13.0",

@@ -46,15 +46,35 @@ export function ThemeWrapper({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
-  const { user } = useAuth(); // Mantemos o useAuth por enquanto, se necessário
-  const isAuthenticated = useIsAuthenticated();
+  const { user, logout } = useAuth(); // Login tradicional
+  const isAuthenticatedAzure = useIsAuthenticated(); // Login Azure AD
+  const location = useLocation();
+  
+  // Verificar se há parâmetro de logout forçado na URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    if (urlParams.get('forcelogout') === 'true') {
+      // Forçar logout e limpeza completa
+      logout();
+      localStorage.clear();
+      sessionStorage.clear();
+      // Remover parâmetro da URL
+      const newUrl = location.pathname;
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, [location.search, logout]);
+  
+  // Usuário está autenticado se logou tradicionalmente OU via Azure AD
+  const isAuthenticated = user || isAuthenticatedAzure;
+  
+
 
   return (
     <ThemeProvider>
       <ThemeWrapper>
         <div data-testid="app-container" className="min-h-screen transition-colors duration-300 bg-background text-foreground">
           <Routes>
-            {/* Se o usuário NÃO estiver autenticado pelo MSAL, mostre apenas a página de login */}
+            {/* Se o usuário NÃO estiver autenticado, mostre apenas a página de login */}
             {!isAuthenticated && <Route path="*" element={<Login />} />}
 
             {/* Se o usuário ESTIVER autenticado, renderize as rotas protegidas */}
@@ -116,15 +136,18 @@ function App() {
                     </PrivateRoute>
                   }
                 />
+                {/* Rota de login explícita */}
+                <Route path="/login" element={<Login />} />
+                
                 {/* Redirecionamento da raiz */}
                 <Route 
                   path="/" 
-                  element={<Navigate to="/dashboard" replace />} 
+                  element={<Navigate to="/login" replace />} 
                 />
                 {/* Fallback para qualquer outra rota */}
                 <Route 
                   path="*" 
-                  element={<Navigate to="/dashboard" replace />} 
+                  element={<Navigate to="/login" replace />} 
                 />
               </>
             )}
