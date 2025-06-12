@@ -31,6 +31,7 @@
     "security:scan": "tsx scripts/security-scanner.ts",
     "clean:secrets": "npm run security:clean",
     "verify:secrets": "npm run security:verify",
+    "verify:doppler": "tsx scripts/verify-doppler-secrets.ts",
     "setup:env": "npm run env:setup",
     "upload:env": "npm run env:upload",
     "security:backup": "tsx scripts/upload-env.ts",
