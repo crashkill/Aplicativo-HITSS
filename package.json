@@ -44,6 +44,10 @@
     "git:create-gitlab": "chmod +x scripts/create-gitlab-repo.sh && ./scripts/create-gitlab-repo.sh",
     "git:push-both": "chmod +x scripts/push-both.sh && ./scripts/push-both.sh",
     "git:status": "chmod +x scripts/repo-status.sh && ./scripts/repo-status.sh",
+    "gitlab:validate": "pnpm lint && pnpm type-check",
+    "gitlab:build": "doppler run -- pnpm build",
+    "gitlab:test": "pnpm test --coverage",
+    "gitlab:pipeline": "glab ci view",
     "start": "npm run dev",
     "postinstall": "echo '📋 Para executar a aplicação: npm run dev (requer Doppler configurado)'"
   },
