@@ -41,6 +41,7 @@
     "browser:health": "tsx scripts/browser-health-check.ts",
     "doppler:check": "doppler secrets --silent && echo '✅ Doppler configurado corretamente' || echo '❌ Doppler não configurado. Execute: doppler setup'",
     "git:setup-dual": "chmod +x scripts/dual-repo-setup.sh && ./scripts/dual-repo-setup.sh",
+    "git:create-gitlab": "chmod +x scripts/create-gitlab-repo.sh && ./scripts/create-gitlab-repo.sh",
     "git:push-both": "chmod +x scripts/push-both.sh && ./scripts/push-both.sh",
     "git:status": "chmod +x scripts/repo-status.sh && ./scripts/repo-status.sh",
     "start": "npm run dev",

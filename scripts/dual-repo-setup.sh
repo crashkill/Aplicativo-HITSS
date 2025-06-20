@@ -45,22 +45,33 @@ git remote -v
 
 echo ""
 
-# Configurar GitLab da empresa
-read -p "Digite a URL do repositório GitLab da empresa: " GITLAB_URL
+# Configurar remote GitLab da empresa
+log "Configurando remote GitLab da empresa..."
 
-if [ -z "$GITLAB_URL" ]; then
-    error "URL do GitLab é obrigatória"
+# Pegar token do Doppler
+GITLAB_TOKEN=$(doppler secrets get GITLAB_TOKEN --plain 2>/dev/null || echo "")
+GITLAB_URL=$(doppler secrets get GITLAB_URL --plain 2>/dev/null || echo "")
+
+if [ -z "$GITLAB_TOKEN" ] || [ -z "$GITLAB_URL" ]; then
+    error "Token ou URL do GitLab não encontrados no Doppler"
+    log "Execute: doppler secrets set GITLAB_TOKEN=seu_token"
+    log "Execute: doppler secrets set GITLAB_URL=https://gitlab.globalhitss.com.br"
     exit 1
 fi
 
-# Adicionar remote do GitLab
-log "Adicionando remote do GitLab..."
-if git remote | grep -q "gitlab"; then
-    warn "Remote 'gitlab' já existe. Removendo..."
-    git remote remove gitlab
-fi
+# Extrair hostname da URL
+GITLAB_HOST=$(echo "$GITLAB_URL" | sed 's|https://||' | sed 's|http://||' | sed 's|/.*||')
 
-git remote add gitlab "$GITLAB_URL"
+# Configurar URL com token para autenticação
+GITLAB_REMOTE_URL="https://oauth2:${GITLAB_TOKEN}@${GITLAB_HOST}/fabricio.lima/aplicativo-hitss.git"
+
+# Remover remote gitlab se existir
+git remote remove gitlab 2>/dev/null || true
+
+# Adicionar remote do GitLab
+git remote add gitlab "$GITLAB_REMOTE_URL"
+
+log "Remote GitLab configurado: ${GITLAB_HOST}"
 
 # Configurar remote 'both' para push simultâneo
 log "Configurando remote 'both' para push simultâneo..."
