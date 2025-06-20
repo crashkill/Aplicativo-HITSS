@@ -4,13 +4,18 @@ import { authService } from '../services/authService';
 import { microsoftGraphService } from '../services/microsoftGraphService';
 import { msalInstance, isMsalReady, getMsalDebugInfo } from './MsalProvider';
 import { loginRequest } from '../lib/msalConfig';
+import { azureMFAService, MFAChallenge } from '../services/AzureMFAService';
 
 interface AuthContextType {
   user: User | null;
   isAdmin: boolean;
   isLoading: boolean;
+  mfaChallenge: MFAChallenge | null;
+  isMFARequired: boolean;
   login: (email: string, password: string) => Promise<void>;
   loginWithAzure: () => Promise<void>;
+  completeMFA: (mfaToken: string) => Promise<void>;
+  cancelMFA: () => void;
   logout: () => void;
   refreshUserProfile: () => Promise<void>;
 }
@@ -20,6 +25,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [mfaChallenge, setMfaChallenge] = useState<MFAChallenge | null>(null);
+  const [isMFARequired, setIsMFARequired] = useState(false);
+  const [pendingAzureUser, setPendingAzureUser] = useState<User | null>(null);
 
   // Inicializar aplicação
   useEffect(() => {
@@ -231,6 +239,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Completar MFA após verificação
+  const completeMFA = async (mfaToken: string) => {
+    try {
+      if (!pendingAzureUser) {
+        throw new Error('Nenhum usuário pendente para completar MFA');
+      }
+
+      console.log('✅ MFA completado, finalizando login...');
+      
+      // Adicionar token MFA ao usuário
+      const userWithMFA = {
+        ...pendingAzureUser,
+        mfaToken,
+        mfaVerified: true,
+        mfaTimestamp: new Date().toISOString()
+      };
+
+      setUser(userWithMFA);
+      localStorage.setItem('azure_user', JSON.stringify(userWithMFA));
+      
+      // Sincronizar com Supabase
+      await syncUserWithSupabase(userWithMFA);
+
+      // Limpar estado MFA
+      setMfaChallenge(null);
+      setIsMFARequired(false);
+      setPendingAzureUser(null);
+
+      console.log('🎉 Login Azure com MFA completado com sucesso!');
+    } catch (error) {
+      console.error('❌ Erro ao completar MFA:', error);
+      throw error;
+    }
+  };
+
+  // Cancelar processo MFA
+  const cancelMFA = () => {
+    setMfaChallenge(null);
+    setIsMFARequired(false);
+    setPendingAzureUser(null);
+    console.log('❌ MFA cancelado pelo usuário');
+  };
+
   // Login com Azure AD expandido
   const loginWithAzure = async () => {
     setIsLoading(true);
@@ -275,14 +326,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ...sessionInfo,
       };
 
-      // 5. Definir usuário e limpar localStorage local
-      setUser(userData);
-      localStorage.removeItem('user'); // Azure AD não usa localStorage
+      // 5. Verificar se MFA é obrigatório
+      const mfaRequired = await azureMFAService.isMFARequired(userData.email);
       
-      // 6. Sincronizar com Supabase
-      await syncUserWithSupabase(userData);
+      if (mfaRequired) {
+        console.log('🔐 MFA obrigatório - iniciando desafio...');
+        
+        // Armazenar usuário temporariamente
+        setPendingAzureUser(userData);
+        
+        // Iniciar desafio MFA
+        const challenge = await azureMFAService.initiateMFAChallenge(loginResponse.accessToken);
+        setMfaChallenge(challenge);
+        setIsMFARequired(true);
+        
+        console.log('📱 Desafio MFA criado, aguardando verificação...');
+        // Não definir o usuário ainda - aguardar MFA
+      } else {
+        // 6. MFA não obrigatório - login direto
+        setUser(userData);
+        localStorage.removeItem('user'); // Azure AD não usa localStorage
+        
+        // 7. Sincronizar com Supabase
+        await syncUserWithSupabase(userData);
 
-      console.log('Login Azure AD expandido concluído:', userData);
+        console.log('Login Azure AD expandido concluído:', userData);
+      }
 
     } catch (error) {
       console.error('Erro no login Azure AD:', error);
@@ -362,8 +431,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       user, 
       isAdmin: user?.isAdmin || false,
       isLoading,
+      mfaChallenge,
+      isMFARequired,
       login,
       loginWithAzure,
+      completeMFA,
+      cancelMFA,
       logout,
       refreshUserProfile
     }}>
