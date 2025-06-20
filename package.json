@@ -44,6 +44,7 @@
     "git:create-gitlab": "chmod +x scripts/create-gitlab-repo.sh && ./scripts/create-gitlab-repo.sh",
     "git:push-both": "chmod +x scripts/push-both.sh && ./scripts/push-both.sh",
     "git:status": "chmod +x scripts/repo-status.sh && ./scripts/repo-status.sh",
+    "gitlab:setup-ci": "chmod +x scripts/gitlab-ci-setup.sh && ./scripts/gitlab-ci-setup.sh",
     "gitlab:validate": "pnpm lint && pnpm type-check",
     "gitlab:build": "doppler run -- pnpm build",
     "gitlab:test": "pnpm test --coverage",
